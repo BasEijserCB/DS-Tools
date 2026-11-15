@@ -22,10 +22,10 @@
   de balk dicht; nog een klik op de bookmarklet ook.
 */
 (function () {
-  var LAUNCHER_VERSION = '1.2.2';
+  var LAUNCHER_VERSION = '1.2.3';
   var ID = 'ds-tools-launcher';
-  var BASE = 'https://raw.githubusercontent.com/BasEijserCB/DS_callscript_app/main/';
-  var BEHEER_URL = 'https://baseijsercb.github.io/DS_callscript_app/launcher/beheer.html';
+  var BASE = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/';
+  var BEHEER_URL = 'https://baseijsercb.github.io/DS-Tools/launcher/beheer.html';
   var STATUS_CACHE = 'ds_tools_status';
   // DS_TOOLS_MODUS komt uit de loader (direct eval ziet zijn variabelen): 'dev' of 'lijst'.
   var MODUS = typeof DS_TOOLS_MODUS !== 'undefined' ? DS_TOOLS_MODUS : '';

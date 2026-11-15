@@ -68,7 +68,7 @@
 
 <script>
 (function () {
-  var REPO = 'BasEijserCB/DS_callscript_app';
+  var REPO = 'BasEijserCB/DS-Tools';
   var PAD = 'launcher/status.json';
   var API = 'https://api.github.com/repos/' + REPO + '/contents/' + PAD;
   var RAW = 'https://raw.githubusercontent.com/' + REPO + '/main/launcher/launcher.js';
@@ -188,7 +188,7 @@
     $('token').innerHTML =
       '<p>Opslaan schrijft <code>launcher/status.json</code> in de repo. Daarvoor is een eigen token nodig; hij blijft alleen in deze browser.</p>' +
       '<ol><li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> → Generate new token.</li>' +
-      '<li>Repository access: <b>Only select repositories</b> → <code>DS_callscript_app</code>.</li>' +
+      '<li>Repository access: <b>Only select repositories</b> → <code>DS-Tools</code>.</li>' +
       '<li>Permissions → Repository → <b>Contents: Read and write</b>. Verder niets.</li>' +
       '<li>Plak hem hieronder.</li></ol>' +
       '<input type="password" id="tokenveld" placeholder="github_pat_…" autocomplete="off">' +
