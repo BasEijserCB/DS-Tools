@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek op de consumer portal
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.1.0
+// @version      1.2.0
 // @description  Opent DS Logboek vanzelf op de consumer portal, in de lege rechtermarge naast de pagina.
 // @match        https://coolbluebezorgt.dirextion.nl/*
 // @grant        none
@@ -76,6 +76,23 @@
     verschoven.style.marginRight = '';
     verschoven.style.zoom = '';
     verschoven = null;
+    [document.documentElement, document.body].forEach(function (el) { el.style.backgroundPositionX = ''; });
+  }
+
+  // De witte kolom met schaduwranden is (vermoedelijk) een achtergrondafbeelding
+  // op <html>/<body>, geen element: hij stond niet in de probe en bleef
+  // gecentreerd staan als #bodyContainer opschoof. Schuif die achtergrond mee
+  // met hetzelfde aantal pixels als het midden van de kolom (v1.2.0).
+  // Meerdere lagen (bijv. ook blauwe balken) schuiven allemaal mee; een laag
+  // die horizontaal herhaalt merkt daar niets van.
+  function schuifAchtergrond(dx) {
+    [document.documentElement, document.body].forEach(function (el) {
+      var cs = getComputedStyle(el);
+      if (!cs.backgroundImage || cs.backgroundImage === 'none') return;
+      el.style.backgroundPositionX = cs.backgroundPositionX.split(',').map(function (x) {
+        return 'calc(' + (x.trim() || '0%') + ' + ' + Math.round(dx) + 'px)';
+      }).join(', ');
+    });
   }
 
   function plaats() {
@@ -119,6 +136,11 @@
           // Nog kleiner venster: niets aanpassen, het logboek ligt erover.
         }
       }
+    }
+
+    if (verschoven && rc) {
+      var nu = col.getBoundingClientRect();
+      schuifAchtergrond((nu.left + nu.right) / 2 - (rc.left + rc.right) / 2);
     }
 
     // Hoogte pas na het verschuiven/zoomen meten: zoom verplaatst de tab.
