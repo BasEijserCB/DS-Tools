@@ -221,11 +221,12 @@
       doel: 'Laat in de Ritmonitor zien welke ritten met een elektrische bus rijden.',
       stappen: [
         'Open de Ritmonitor.',
-        'Start <b>EV-ritten</b>. Elektrische ritten krijgen een ⚡ en een groene rand.',
-        'Nog een keer starten, of <span class="k">×</span> op het pilletje, zet het weer uit.'
+        'Start <b>EV-ritten</b>. Elektrische ritten krijgen rechts in de tegel een <span class="p g">⚡ EV</span>.',
+        'Nog een keer starten, of <span class="k">×</span> op het pilletje, zet het weer uit.',
+        'Liever automatisch, zonder klik? Installeer het <a href="https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/ev/ev-ritten.user.js" target="_blank" rel="noopener">Tampermonkey-script</a> (klik op <b>Installeren</b> in Tampermonkey). Daarna verschijnt de ⚡ EV vanzelf zodra de Ritmonitor opent.'
       ],
       tekens: [
-        ['<span class="p g">⚡</span>', 'Voor de ritnaam: de bus is elektrisch volgens Fleetio.'],
+        ['<span class="p g">⚡ EV</span>', 'Rechts in de tegel: de bus is elektrisch volgens Fleetio.'],
         ['<span class="p g">⚡ 12 EV-ritten van 46 · 2 onbekend</span>', 'Pilletje linksonder. Onbekend = brandstof niet bekend; die ritten krijgen geen ⚡.'],
         ['<span class="p a">niet getoond</span>', 'De data is van een andere dag dan de ritten in beeld: er staat niets gemarkeerd.']
       ],
