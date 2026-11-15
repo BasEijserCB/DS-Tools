@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek op de consumer portal
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.0
-// @description  Opent DS Logboek vanzelf op de consumer portal, in de lege rechtermarge naast de pagina.
+// @version      1.3.0
+// @description  Opent DS Logboek vanzelf op de consumer portal, in de lege linkermarge naast de pagina.
 // @match        https://coolbluebezorgt.dirextion.nl/*
 // @grant        none
 // @run-at       document-idle
@@ -14,12 +14,13 @@
    dezelfde cache-sleutel als de bookmarklet en de launcher (ds_app_prod_cache).
 
    Plek: de portal heeft een smalle kolom in het midden met aan beide kanten
-   lege ruimte. Het logboek komt rechts in die marge, op de hoogte van de tabs
-   (Informatie / Klantgegevens / Zendinginformatie). Is de marge te smal
-   (laptop, of de brede stand van 600px), dan komt het logboek tegen de
-   rechterrand en krijgt alleen de kolom (#bodyContainer, 1000px) de ruimte
-   links ervan: eerst door op te schuiven, en als hij daar niet op ware grootte
-   past met CSS-zoom tot 75%. Nog smaller venster: niets aanpassen, het
+   lege ruimte. Het logboek komt LINKS in die marge (v1.3.0, zelfde kant als
+   op Basic; tot v1.2.0 rechts), op de hoogte van de tabs (Informatie /
+   Klantgegevens / Zendinginformatie). Is de marge te smal (laptop, of de
+   brede stand van 600px), dan komt het logboek tegen de linkerrand en krijgt
+   alleen de kolom (#bodyContainer, 1000px) de ruimte rechts ervan: eerst door
+   naar rechts op te schuiven, en als hij daar niet op ware grootte past met
+   CSS-zoom tot 75%. Nog smaller venster: niets aanpassen, het
    logboek ligt erover (v1.1.0; v1.0.0 zette padding op <html>, wat de kolom
    liet staan en een tweede witte laag gaf).
 
@@ -106,30 +107,31 @@
     // Eerst meten zoals de portal zelf is.
     herstelPagina();
     var rc = col ? col.getBoundingClientRect() : null;
-    var vrij = rc ? window.innerWidth - rc.right : 0;
+    // Links, net als op Basic (v1.3.0; tot v1.2.0 rechts).
+    var vrij = rc ? rc.left : 0;
+    var opzij = breedte + 2 * MARGE;   // ruimte die het logboek links inneemt
 
-    if (rc && vrij >= breedte + 2 * MARGE) {
-      // 1. Past in de marge rechts: tegen de kolom aan, pagina ongemoeid.
-      s.left = (rc.right + MARGE) + 'px';
-      s.right = 'auto';
+    s.right = 'auto';
+    if (rc && vrij >= opzij) {
+      // 1. Past in de marge links: tegen de kolom aan, pagina ongemoeid.
+      s.left = (rc.left - MARGE - breedte) + 'px';
     } else {
-      // Logboek tegen de rechterrand; de kolom krijgt de ruimte links ervan.
-      s.left = 'auto';
-      s.right = MARGE + 'px';
+      // Logboek tegen de linkerrand; de kolom krijgt de ruimte rechts ervan.
+      s.left = MARGE + 'px';
       if (col) {
-        var ruimte = window.innerWidth - breedte - 2 * MARGE;   // links van het logboek
+        var ruimte = window.innerWidth - opzij;   // rechts van het logboek
         if (ruimte >= rc.width) {
-          // 2. Kolom past op ware grootte: opschuiven, gecentreerd in die ruimte.
-          col.style.marginLeft = Math.max(0, Math.floor((ruimte - rc.width) / 2)) + 'px';
+          // 2. Kolom past op ware grootte: naar rechts, gecentreerd in die ruimte.
+          col.style.marginLeft = (opzij + Math.floor((ruimte - rc.width) / 2)) + 'px';
           col.style.marginRight = '0px';
           verschoven = col;
         } else {
           // 3. Past niet: kolom iets kleiner, tot MIN_ZOOM. Marges schalen mee
           //    met zoom, dus delen door z.
-          var z = (ruimte - MARGE) / rc.width;
+          var z = Math.floor((ruimte - MARGE) / rc.width * 100) / 100;
           if (z >= MIN_ZOOM) {
-            col.style.zoom = String(Math.floor(z * 100) / 100);
-            col.style.marginLeft = (MARGE / z) + 'px';
+            col.style.zoom = String(z);
+            col.style.marginLeft = (opzij / z) + 'px';
             col.style.marginRight = '0px';
             verschoven = col;
           }
