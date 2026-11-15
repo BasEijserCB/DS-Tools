@@ -40,6 +40,10 @@
 !/schuifalias/schuifalias.js
 !/schuifalias/install-schuifalias.html
 
+!/ev/
+/ev/*
+!/ev/ev-ritten.js
+
 !/extern/
 /extern/*
 !/extern/*.js

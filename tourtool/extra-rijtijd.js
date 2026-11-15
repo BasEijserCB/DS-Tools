@@ -64,7 +64,7 @@
 (function () {
   'use strict';
 
-  var RIJTIJD_VERSION = 'v1.19.1';
+  var RIJTIJD_VERSION = 'v1.20.0';
 
   var PANEL_ID = 'extra-rijtijd-panel';
   var PIL_ID = 'extra-rijtijd-pil';
@@ -73,6 +73,11 @@
   var KEY_RES = 'rijtijd_resultaten';
   var KEY_NETWERKEN = 'rijtijd_netwerken';
   var KEY_ORS = 'rijtijd_ors_key';
+  // EV-markering (v1.20.0): zelfde data en sleutel als ev/ev-ritten.js, die
+  // hem ook vult. Alleen een label in de uitslag — telt niet mee in de ranglijst.
+  var KEY_EV = 'ev_ritten_data';
+  var EV_URL = 'https://script.google.com/macros/s/AKfycbxcg30KXrBjnnnt2e8wb_ThaLP43LkvMuKrUFdQ8Y11ZjkJC6GcwIjUFc_bWFRxQS_EtA/exec';
+  var EV_MAX_MIN = 30;
 
   // ── ROUTER ───────────────────────────────────────────────────
   // De OpenRouteService-sleutel staat bewust NIET in dit bestand: het staat
@@ -279,6 +284,57 @@
     } catch (e) { return null; }
   }
   function uw(v) { try { return window.ko ? window.ko.unwrap(v) : v; } catch (e) { return v; } }
+
+  // ── EV-ritten ────────────────────────────────────────────────
+  // route_id's met een elektrische bus, uit gas-laadvermogen.js (`ev`). De
+  // koppeling is referenceId = route_id; de Ritmonitor-`id` matcht nooit.
+  // Geen data, of data van een andere dag = geen labels, stil.
+  var evRefs = null;
+  function vandaagIso() {
+    var d = new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  function zetEv(d) {
+    evRefs = null;
+    if (!d || !d.ok || !d.ev || d.datum !== vandaagIso()) return;
+    evRefs = {};
+    d.ev.forEach(function (id) { evRefs[String(id)] = true; });
+  }
+  function haalEv() {
+    var c = laad(KEY_EV, null);
+    if (c && c.data && c.data.ev && Date.now() - c.tijd < EV_MAX_MIN * 60000) { zetEv(c.data); return; }
+    if (c && c.data) zetEv(c.data);   // oud is beter dan niets zolang de dag klopt
+    var naam = '__rijtijdEvCb' + Date.now();
+    var s = document.createElement('script');
+    var timer = setTimeout(function () { opruimen(); }, 15000);
+    function opruimen() {
+      clearTimeout(timer);
+      try { delete window[naam]; } catch (e) { window[naam] = undefined; }
+      if (s.parentNode) s.parentNode.removeChild(s);
+    }
+    window[naam] = function (d) {
+      opruimen();
+      if (d && d.ok && d.ev) { bewaar(KEY_EV, { tijd: Date.now(), data: d }); zetEv(d);
+        // Alleen hertekenen als er al een uitslag staat: midden in een scan
+        // zou render() de voortgangsmelding overschrijven.
+        if (resultaten.length) render(); }
+    };
+    s.onerror = opruimen;
+    s.src = EV_URL + '?callback=' + naam + '&t=' + Date.now();
+    document.head.appendChild(s);
+  }
+  // Ref uit de uitslag, met de rittenlijst van de Ritmonitor als terugval
+  // (id → referenceId) voor het geval GetTours het veld anders noemt.
+  function isEv(r) {
+    if (!evRefs) return false;
+    if (r.ref && evRefs[r.ref]) return true;
+    var root = koRoot();
+    var tours = root ? (uw(root.tours) || []) : [];
+    for (var i = 0; i < tours.length; i++) {
+      if (String(uw(tours[i].id)) === String(r.tourId)) return !!evRefs[String(uw(tours[i].referenceId))];
+    }
+    return false;
+  }
 
   // ── depots ───────────────────────────────────────────────────
   // Het depotfilter van de Ritmonitor is in de praktijk een stadskeuze: sinds
@@ -522,7 +578,7 @@
     var id = uw(t.id); if (id == null) id = uw(t.TourId); if (id == null) id = uw(t.Id);
     if (id == null) return null;
     var naam = uw(t.name) || uw(t.Name) || uw(t.Alias) || '';
-    var ref = uw(t.referenceId) || uw(t.ReferenceId) || '';
+    var ref = uw(t.referenceId) || uw(t.ReferenceId) || uw(t.Reference) || '';
     // stops/gedaan tellen ook activiteiten mee, dus ze zijn niet gelijk aan wat
     // verwerkStops() straks overhoudt. Ze worden alleen gebruikt om ritten over
     // te slaan die sowieso geen gat kunnen hebben — die kant op is het veilig.
@@ -1458,6 +1514,7 @@
             : g.extra + ' min rijden';
           html += '<div class="er-rij" data-tour="' + r.tourId + '" title="Klik om deze rit te openen">' +
             '<div class="er-rij-kop"><span class="er-rit">' + esc(r.rit) +
+              (isEv(r) ? ' <span class="pill pill-green" title="Elektrische bus (Fleetio, via de sheet van vannacht)">\u26A1 EV</span>' : '') +
               (gemengd && r.rang === minRang ? ' <span class="pill pill-green">lichtste ploeg</span>' : '') +
               (idx === 0 ? ' <span class="er-ster">★</span>' : '') +
               (r.tourId === gekozenTour
@@ -2154,5 +2211,6 @@
   // plaats van verstopt achter een klik op de samenvattingsbalk.
   vouwForm(true);
   render();
+  haalEv();
   console.log('[Extra rijtijd] geladen — scant alle ritten, voorsprong telt mee');
 })();

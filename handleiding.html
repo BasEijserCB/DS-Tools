@@ -208,12 +208,31 @@
         ['<span class="p r">+22 min</span>', 'De rit loopt meer dan 15 min uit.'],
         ['<span class="p a">⚠ krap</span>', 'Vlak na de huidige stop: kan, maar krap.'],
         ['<span class="p a">⚠ korte rit</span>', 'Past alleen omdat de rit kort gepland staat: controleer dat.'],
-        ['<span class="p b">⚑ op het depot</span>', 'Rit is nog niet vertrokken: informeer de TL na het inplannen.']
+        ['<span class="p b">⚑ op het depot</span>', 'Rit is nog niet vertrokken: informeer de TL na het inplannen.'],
+        { als: 'ev-ritten', v: ['<span class="p g">⚡ EV</span>', 'Deze rit rijdt elektrisch: let op de actieradius.'] }
       ],
       letop: [
         'Eerste keer: vul je eigen ORS-sleutel in (uitleg op de <a href="tourtool/install-rijtijd.html">installatiepagina</a>).',
         'Alleen Nederland en België.',
         'De uitslag is een voorstel; plannen doe je zelf in DireXtion.'
+      ]
+    },
+    'ev-ritten': {
+      doel: 'Laat in de Ritmonitor zien welke ritten met een elektrische bus rijden.',
+      stappen: [
+        'Open de Ritmonitor.',
+        'Start <b>EV-ritten</b>. Elektrische ritten krijgen een ⚡ en een groene rand.',
+        'Nog een keer starten, of <span class="k">×</span> op het pilletje, zet het weer uit.'
+      ],
+      tekens: [
+        ['<span class="p g">⚡</span>', 'Voor de ritnaam: de bus is elektrisch volgens Fleetio.'],
+        ['<span class="p g">⚡ 12 EV-ritten van 46 · 2 onbekend</span>', 'Pilletje linksonder. Onbekend = brandstof niet bekend; die ritten krijgen geen ⚡.'],
+        ['<span class="p a">niet getoond</span>', 'De data is van een andere dag dan de ritten in beeld: er staat niets gemarkeerd.']
+      ],
+      letop: [
+        'De bus komt uit de sheet van vannacht. Is er vandaag een andere bus ingezet, dan klopt de ⚡ niet.',
+        'Ritten die vandaag zijn aangemaakt krijgen geen ⚡.',
+        'Alleen Nederland heeft op dit moment elektrische bussen in Fleetio.'
       ]
     },
     'same-day-text': {

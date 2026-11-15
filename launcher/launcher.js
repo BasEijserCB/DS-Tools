@@ -22,7 +22,7 @@
   de balk dicht; nog een klik op de bookmarklet ook.
 */
 (function () {
-  var LAUNCHER_VERSION = '1.3.0';
+  var LAUNCHER_VERSION = '1.4.0';
   var ID = 'ds-tools-launcher';
   var BASE = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/';
   var BEHEER_URL = 'https://baseijsercb.github.io/DS-Tools/launcher/beheer.html';
@@ -72,6 +72,10 @@
       hier: opRitmonitor,
       kleur: '#1a7f37',
       bestanden: [{ naam: 'Extra rijtijd', cache: 'ds_rijtijd_prod_cache', src: 'tourtool/extra-rijtijd.js', versie: /RIJTIJD_VERSION\s*=\s*['"]([^'"]+)['"]/ }] },
+    { id: 'ev-ritten', waar: 'Ritmonitor', status: 'test', naam: 'EV-ritten', icoon: '⚡', uitleg: 'Elektrische ritten herkenbaar in de rittenlijst',
+      hier: opRitmonitor, alleenHier: true,
+      kleur: '#558b2f',
+      bestanden: [{ naam: 'EV-ritten', cache: 'ds_ev_ritten_cache', src: 'ev/ev-ritten.js', versie: /EV_VERSION\s*=\s*['"]([^'"]+)['"]/ }] },
     { id: 'same-day-text', waar: 'Order in Basic', status: 'productie', naam: 'Same day text', icoon: '🎉', uitleg: 'Opmerking: wordt vandaag nog opgelost',
       hier: opBasicOrders,
       start: function () { opmerkingTekst('Wordt al opgelost, via nieuw bezoek van bezorger(s) op dezelfde dag'); } },
