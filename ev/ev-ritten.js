@@ -20,7 +20,9 @@
      koppelen kan dus niet.
    - De rittenlijst wordt door SignalR/Knockout steeds opnieuw getekend:
      een MutationObserver zet de markering na elke wijziging terug.
-   - EV-rit: ⚡-chip vóór de ritnaam en een groene linkerrand.
+   - EV-rit: ⚡ EV-chip rechts in de tegel (in de lege ruimte achter
+     apparaat/tijden/km, naast het kruisje) en een groene linkerrand. Tot
+     v1.1.0 stond de chip vóór de ritnaam, tussen de tekst — te druk.
      Onbekend: geen markering, alleen een telling in het pilletje.
 
    NIET TOEGEPAST ALS
@@ -32,7 +34,7 @@
 (function () {
   'use strict';
 
-  var EV_VERSION = '1.0.0';
+  var EV_VERSION = '1.1.0';
 
   // /exec-URL van gas-laadvermogen.js (zelfde als in laadvermogen.js).
   var GAS_URL = 'https://script.google.com/macros/s/AKfycbxcg30KXrBjnnnt2e8wb_ThaLP43LkvMuKrUFdQ8Y11ZjkJC6GcwIjUFc_bWFRxQS_EtA/exec';
@@ -47,6 +49,7 @@
   var PILL_ID = 'ev-ritten-pill';
   var CHIP = 'ev-ritten-chip';
   var RIJ = 'ev-ritten-rij';
+  var CEL = 'ev-ritten-cel';
 
   // ── Aan/uit ───────────────────────────────────────────────────────────────
   if (window.__evRitten && window.__evRitten.stop) {
@@ -149,16 +152,19 @@
     return uit;
   }
 
-  // Het element dat precies de ritnaam als tekst heeft. Gevonden op inhoud,
-  // niet op celpositie: de opbouw van de rij is niet vastgelegd.
-  function naamElement(rit) {
+  // De cel met apparaat, tijden en "17/21 191 km": rechts in de tegel, met
+  // veel lege ruimte. Gevonden op inhoud, niet op celpositie — de opbouw van
+  // de rij is niet vastgelegd. Terugval: de laatste cel van de eerste rij.
+  function doelCel(rit) {
     for (var r = 0; r < rit.rijen.length; r++) {
-      var els = rit.rijen[r].querySelectorAll('td, span, div, a, b, strong');
-      for (var i = els.length - 1; i >= 0; i--) {
-        if (els[i].children.length === 0 && els[i].textContent.trim() === rit.naam) return els[i];
+      var cellen = rit.rijen[r].querySelectorAll('td');
+      for (var i = cellen.length - 1; i >= 0; i--) {
+        if (!cellen[i].querySelector('td') &&
+            /\d+\s*\/\s*\d+\s+[\d.,]+\s*km/i.test(cellen[i].textContent)) return cellen[i];
       }
     }
-    return null;
+    var eerste = rit.rijen[0].querySelectorAll('td');
+    return eerste.length ? eerste[eerste.length - 1] : null;
   }
 
   // ── Markeren ──────────────────────────────────────────────────────────────
@@ -177,6 +183,8 @@
     for (var i = 0; i < t.length; i++) t[i].parentNode.removeChild(t[i]);
     var r = document.querySelectorAll('.' + RIJ);
     for (var j = 0; j < r.length; j++) r[j].classList.remove(RIJ);
+    var c = document.querySelectorAll('.' + CEL);
+    for (var k = 0; k < c.length; k++) c[k].classList.remove(CEL);
   }
 
   function markeer(rit) {
@@ -186,14 +194,12 @@
     }
     var chip = document.createElement('span');
     chip.className = CHIP;
-    chip.textContent = '⚡';
+    chip.textContent = '⚡ EV';
     chip.title = 'Elektrische bus (Fleetio, via de sheet van vannacht)';
-    var el = naamElement(rit);
-    if (el && el.parentNode) el.parentNode.insertBefore(chip, el);
-    else {
-      var td = rit.rijen[0].querySelector('td');
-      if (td) td.insertBefore(chip, td.firstChild);
-    }
+    var td = doelCel(rit);
+    if (!td) return;
+    td.classList.add(CEL);
+    td.appendChild(chip);
   }
 
   function ontmarkeer(rit) {
@@ -201,6 +207,8 @@
       if (tr.classList.contains(RIJ)) tr.classList.remove(RIJ);
       var c = tr.querySelectorAll('.' + CHIP);
       for (var i = 0; i < c.length; i++) c[i].parentNode.removeChild(c[i]);
+      var k = tr.querySelectorAll('.' + CEL);
+      for (var j = 0; j < k.length; j++) k[j].classList.remove(CEL);
     });
   }
 
@@ -245,9 +253,12 @@
     var st = document.createElement('style');
     st.id = STYLE_ID;
     st.textContent =
-      '.' + CHIP + '{display:inline-block;margin-right:4px;padding:0 4px;border-radius:4px;' +
-        'background:#d4edda;color:#155724;border:1px solid #00B900;font-size:10px;font-weight:700;' +
-        'line-height:14px;vertical-align:middle;cursor:default;}' +
+      // Rechts in de cel, verticaal gecentreerd, buiten de tekstregels om.
+      // right:28px houdt het kruisje rechtsboven vrij als dat in dezelfde cel staat.
+      'td.' + CEL + '{position:relative;}' +
+      '.' + CHIP + '{position:absolute;right:28px;top:50%;transform:translateY(-50%);' +
+        'padding:1px 6px;border-radius:4px;background:#d4edda;color:#155724;border:1px solid #00B900;' +
+        'font-size:11px;font-weight:700;line-height:14px;white-space:nowrap;cursor:default;pointer-events:none;}' +
       'tr.' + RIJ + ' > td:first-child{box-shadow:inset 3px 0 0 #00B900;}';
     document.head.appendChild(st);
   }
