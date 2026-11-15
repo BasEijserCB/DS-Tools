@@ -11,6 +11,7 @@
 # Pagina's (GitHub Pages)
 !/index.html
 !/install.html
+!/handleiding.html
 
 # Code geladen door de loaders / launcher
 !/ds-logboek.js

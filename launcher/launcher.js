@@ -22,10 +22,11 @@
   de balk dicht; nog een klik op de bookmarklet ook.
 */
 (function () {
-  var LAUNCHER_VERSION = '1.2.3';
+  var LAUNCHER_VERSION = '1.3.0';
   var ID = 'ds-tools-launcher';
   var BASE = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/';
   var BEHEER_URL = 'https://baseijsercb.github.io/DS-Tools/launcher/beheer.html';
+  var HANDLEIDING_URL = 'https://baseijsercb.github.io/DS-Tools/handleiding.html';
   var STATUS_CACHE = 'ds_tools_status';
   // DS_TOOLS_MODUS komt uit de loader (direct eval ziet zijn variabelen): 'dev' of 'lijst'.
   var MODUS = typeof DS_TOOLS_MODUS !== 'undefined' ? DS_TOOLS_MODUS : '';
@@ -256,6 +257,7 @@
       inBalk.map(function (t, i) { return chip(t, i + 1); }).join('');
     if (inMenu.length) h += '<span class="sep"></span><button class="c' + (menuOpen ? ' o' : '') + '" data-a="menu">Andere tools ▾</button>';
     h += '</div><span class="g"></span>' +
+      '<button class="c" data-a="hulp" title="Handleiding bij de tools op deze pagina">?</button>' +
       (DEV ? '<button class="c" data-a="beheer" title="Per tool: productie of test">⚙ Beheer</button>' : '') +
       '<span class="v">v' + LAUNCHER_VERSION + '</span>' +
       '<button class="x" data-a="sluit" title="Sluiten (Esc)">×</button></div>';
@@ -279,6 +281,12 @@
     if (el.dataset.a === 'sluit') return sluit();
     if (el.dataset.a === 'menu') { menuOpen = !menuOpen; return teken(); }
     if (el.dataset.a === 'beheer') { window.open(BEHEER_URL, '_blank'); return sluit(); }
+    if (el.dataset.a === 'hulp') {
+      // Opent bij de tools van deze pagina (#id1,id2); herkent de balk de pagina niet, dan bovenaan.
+      var ids = zichtbaar.filter(function (t) { return t.hier; }).map(function (t) { return t.id; });
+      window.open(HANDLEIDING_URL + (DEV ? '?dev' : '') + (ids.length ? '#' + ids.join(',') : ''), '_blank');
+      return sluit();
+    }
     if (el.dataset.t != null) start(zichtbaar[+el.dataset.t]);
   });
 

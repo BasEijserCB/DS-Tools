@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DS Tools handleiding</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+  body { margin: 0; background: #F2F7FC; font: 14px "Segoe UI", Arial, sans-serif; color: #333333; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 28px 16px 64px; }
+  h1 { font-size: 22px; color: #285dab; margin: 0 0 4px; }
+  .sub { color: #999999; margin: 0 0 18px; line-height: 1.5; }
+  a { color: #0090e3; }
+
+  /* Snelkeuze */
+  .nav { position: sticky; top: 0; z-index: 5; background: #F2F7FC; padding: 8px 0 10px; margin-bottom: 8px;
+    display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; }
+  .nav a { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 14px;
+    background: #fff; border: 1px solid #cce9f9; color: #333333; text-decoration: none; font-size: 13px; white-space: nowrap; }
+  .nav a:hover { border-color: #0090e3; color: #285dab; }
+  .nav a.hier { background: #285dab; border-color: #285dab; color: #fff; }
+
+  .kop { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #999999; margin: 22px 0 8px; }
+
+  /* Algemeen */
+  .tegels { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+  .tegel { background: #fff; border: 1px solid #cce9f9; border-radius: 10px; padding: 12px 14px; }
+  .tegel > b { display: block; color: #285dab; margin-bottom: 4px; }
+  .tegel > span { font-size: 13px; line-height: 1.45; }
+
+  /* Toolkaart */
+  .tool { background: #fff; border: 1px solid #cce9f9; border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; }
+  .tool.licht { border-color: #0090e3; box-shadow: 0 0 0 3px #cce9f9; }
+  .th { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .ic { font-size: 26px; width: 36px; text-align: center; flex: none; }
+  .tn { font-size: 17px; font-weight: 700; color: #285dab; }
+  .waar { font-size: 12px; background: #F2F7FC; border: 1px solid #cce9f9; color: #285dab; border-radius: 4px; padding: 1px 7px; }
+  .tag { font-size: 11px; font-weight: 600; color: #856404; background: #fff8e1; border: 1px solid #ffc107; border-radius: 4px; padding: 0 5px; }
+  .doel { margin: 8px 0 12px 48px; font-size: 14px; line-height: 1.45; }
+  .kol { display: grid; grid-template-columns: 1.15fr 1fr; gap: 18px; margin-left: 48px; }
+  .kol.een { grid-template-columns: 1fr; }
+  .lbl { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #999999; margin-bottom: 6px; }
+  ol.st { list-style: none; counter-reset: s; margin: 0; padding: 0; }
+  ol.st li { counter-increment: s; position: relative; padding: 0 0 8px 30px; line-height: 1.45; font-size: 13px; }
+  ol.st li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 21px; height: 21px; border-radius: 50%;
+    background: #0090e3; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .lg { display: grid; grid-template-columns: auto 1fr; gap: 7px 10px; align-items: center; font-size: 13px; line-height: 1.4; }
+  .lg .s { justify-self: start; }
+  .kol > div, .lg > span { min-width: 0; }
+  .tool { overflow-wrap: anywhere; }
+  .let { margin: 10px 0 0 48px; background: #fff8e1; border-radius: 6px; padding: 8px 12px; font-size: 13px; line-height: 1.45; color: #5c4600; }
+  .let b { color: #856404; }
+  .let ul { margin: 2px 0 0; padding-left: 18px; }
+  .meer { margin: 8px 0 0 48px; font-size: 12px; }
+
+  /* Voorbeelden in de legenda */
+  .k { display: inline-block; border: 1px solid #DDDDDD; border-radius: 6px; padding: 1px 8px; background: #fff; font-size: 12px; }
+  .k.blauw { background: #0090e3; border-color: #0090e3; color: #fff; font-weight: 600; }
+  .p { display: inline-block; border-radius: 10px; padding: 1px 8px; font-size: 12px; font-weight: 600; }
+  .p.g { background: #d4edda; color: #155724; }
+  .p.a { background: #fff8e1; color: #856404; border: 1px solid #ffc107; }
+  .p.r { background: #fff0f0; color: #E50000; }
+  .p.o { background: #ffe8d6; color: #cc5200; }
+  .p.b { background: #F2F7FC; color: #285dab; border: 1px solid #cce9f9; }
+  .toast { display: inline-block; border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 600; color: #fff; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .melding { border-radius: 6px; padding: 10px 12px; font-size: 13px; background: #fff0f0; color: #E50000; }
+  footer { color: #999999; font-size: 12px; margin-top: 28px; }
+
+  @media (max-width: 640px) {
+    .kol { grid-template-columns: 1fr; margin-left: 0; }
+    .doel, .let, .meer { margin-left: 0; }
+    .lg { grid-template-columns: 1fr; gap: 2px; }
+    .lg .s { margin-top: 6px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧰 DS Tools — handleiding</h1>
+  <p class="sub">Per tool: waar je hem gebruikt, de stappen, en wat de kleuren en tekens betekenen. Het <b>?</b> in de DS Tools-balk opent deze pagina bij de tools van de pagina waar je bent. Nog niet geïnstalleerd? Zie <a href="./">de installatiepagina</a>.</p>
+
+  <nav class="nav" id="nav"></nav>
+
+  <div class="kop">De balk</div>
+  <div class="tegels">
+    <div class="tegel"><b>🧰 Openen</b><span>Klik op de bladwijzer <b>DS Tools</b>. Bovenin verschijnt een balk met de tools voor deze pagina; de rest staat onder <b>Andere tools ▾</b>.</span></div>
+    <div class="tegel"><b>▶ Starten</b><span>Klik op een tool, of druk op het cijfer <b>1–9</b>. De balk gaat daarna vanzelf dicht.</span></div>
+    <div class="tegel"><b>✕ Sluiten</b><span><b>Esc</b>, het kruisje, of nog een klik op de bladwijzer.</span></div>
+    <div class="tegel"><b>↻ Update</b><span>Zie je rechtsonder <i>“nieuwe versie gedownload”</i>? Start de tool nog een keer, dan draait de nieuwe versie.</span></div>
+  </div>
+
+  <div id="tools"><p class="sub" style="margin-top:20px;">Laden…</p></div>
+
+  <footer>Iets klopt niet of mist? Laat het Bas weten.</footer>
+</div>
+
+<script>
+(function () {
+  var BASE = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/launcher/';
+  var DEV = /[?&]dev\b/.test(location.search);
+
+  // ── Inhoud per tool. id = het id uit TOOLS in launcher/launcher.js ──────────
+  // stappen: genummerd · tekens: [voorbeeld-HTML, betekenis] · letop: max. 3 regels
+  var H = {
+    'ds-logboek': {
+      doel: 'Registreer elk telefoontje en zet een vervolgstop direct klaar voor DireXtion.',
+      stappen: [
+        'Open de order in de consumer portal of in DireXtion Basic en start <b>DS Logboek</b>. Klant, rit en product worden zelf uitgelezen.',
+        'Beantwoord de vragen: wie belt, waar speelt het, wat moet er gebeuren, en hoe loopt het af.',
+        'Same day of next day? Klik eventueel <b>Adres klaarzetten voor reistijd-check</b> (zie Extra rijtijd) en vul de rit in.',
+        'Sluit af met <span class="k blauw">✓ Loggen</span>, <span class="k blauw">📋 Klembord</span> of <span class="k blauw">Loggen + Klembord</span>.',
+        'Stop gepland? Open het Import-formulier en start <b>DS Plakken</b>.'
+      ],
+      tekens: [
+        ['<span class="k">Geen order ◯</span>', 'Schakelaar onderin: gesprek zonder order. Wist alle ordergegevens.'],
+        ['<span class="k">✎</span>', 'Naast je naam: naam wijzigen.'],
+        ['<span class="k">Wasmachine</span>', 'Productchip klikbaar: product verkeerd herkend? Kies opnieuw.'],
+        ['<span class="k">↓ Rijtijd</span>', 'In het routeveld: haalt de rit op die je in Extra rijtijd koos.'],
+        ['<span class="p r">⚠ Fornuis / Kookplaat</span>', 'DS plant hier geen stop. Alleen loggen.'],
+        ['<span class="toast" style="background:#285dab">↻</span>', 'Nieuwe versie gedownload.']
+      ],
+      letop: [
+        'Rit altijd als <b>netwerk-depot-nummer</b>, bijv. <code>2M-NLTI-07</code>.',
+        'Staat jouw situatie er niet tussen? Kijk onder <b>Andere opties ▾</b>.',
+        'Op Basic opent DireXtion niet vanzelf na het loggen: ga zelf naar het Import-formulier.'
+      ]
+    },
+    'ds-plakken': {
+      doel: 'Vult het Import-formulier in met wat DS Logboek op het klembord zette.',
+      stappen: [
+        'Rond het gesprek in DS Logboek af met <span class="k blauw">📋 Klembord</span> of <span class="k blauw">Loggen + Klembord</span>.',
+        'Open het Import-formulier (<b>Import → ShipmentFiles</b>).',
+        'Start <b>DS Plakken</b> en blijf een paar seconden van het formulier af: sjabloon, klant, adres, product en service vullen zich na elkaar.',
+        'Controleer de velden en <b>sla zelf op</b>.'
+      ],
+      tekens: [
+        ['<span class="toast" style="background:#e67e22">DS Paste</span>', 'Klaar met invullen: controleer voor je opslaat.'],
+        ['<span class="toast" style="background:#e67e22">↻</span>', 'Nieuwe versie gedownload.']
+      ],
+      letop: [
+        'Het klembord is <b>5 minuten</b> geldig. Te laat? Klik in het logboek opnieuw op 📋 Klembord.',
+        'Kopieer tussendoor niets anders, anders staat de order niet meer op het klembord.',
+        'Deur omdraaien als Nazorg krijgt het Extra dienst-sjabloon: controleer die stop extra.'
+      ]
+    },
+    'planning-combi': {
+      doel: 'Zet je vaste instellingen in de planningsmodule en toont het echte laadvermogen per bus in plaats van overal 730 kg.',
+      stappen: [
+        'Open de planningsmodule en start <b>Planning-combi</b>.',
+        'Ingesteld: rit en visit op de kaart, kanaal <b>2mans levering</b>, auto-reload aan, werkperiode <b>3 uur</b>, eerste pauze <b>20 min</b>.',
+        'De kolom <b>Maximale gewicht voertuig</b> toont nu het laadvermogen uit Fleetio, en de kleuren rekenen daarmee. Dat blijft zo als de lijst ververst.'
+      ],
+      tekens: [
+        ['<i class="num">1.150,00 kg</i>', 'Cursief: echt laadvermogen. De oude waarde staat in de tooltip.'],
+        ['<span class="k" style="border:2px dotted #999999">730,00 kg</span>', 'Gestippeld: geen Fleetio-voertuig bekend, DireXtion-waarde blijft staan.'],
+        ['<span class="p a">andere datum</span>', 'De data is van een andere dag dan de planning: er is niets aangepast.'],
+        ['<span class="p g">groen</span> <span class="p o">oranje</span> <span class="p r">rood</span>', 'Belading ten opzichte van het echte laadvermogen; oranje vanaf 50%, rood boven 100%.']
+      ],
+      letop: [
+        'Alleen weergave: DireXtion zelf plant en waarschuwt nog steeds op 730 kg.',
+        'Werkt alleen voor vandaag; de data wordt elke nacht ververst.'
+      ]
+    },
+    'schuifalias': {
+      doel: 'Zet elke ochtend de code van het sturende depot achter de alias van elke schuifrit: <code>2M-DETR-04</code> → <code>2M-DETR-04 (DEDU)</code>.',
+      stappen: [
+        'Open de planningsmodule en start <b>Schuifritten alias</b>. Hij loopt alle depots langs en wijzigt nog niets.',
+        'Bekijk het paneel: per depot <b>oud → nieuw</b>, met eventuele meldingen.',
+        'Klik <span class="k blauw">… aliassen opslaan</span>. De tool slaat op, controleert, en verstuurt de gewijzigde ritten naar het mobiele apparaat.',
+        'Klaar: het depotfilter staat weer op het depot waar je begon.'
+      ],
+      tekens: [
+        ['<span class="p g">✓ Aantallen gecontroleerd</span>', 'Het rittenrapport is vanochtend gecontroleerd.'],
+        ['<span class="p a">controle niet gedraaid</span>', 'Aantallen kunnen afwijken: kijk extra goed.'],
+        ['<span class="p a">melding bij een rit</span>', 'Meer ritten dan gepland, of twee sturende depots: die rit is niet aangepast. Doe hem met de hand.'],
+        ['<span class="k">Verder</span> <span class="k">Overslaan</span>', 'Het DireXtion-venster bleef open: rond het zelf af en klik Verder.']
+      ],
+      letop: [
+        'Wees in de browser ingelogd met je Coolblue Google-account, anders: “web-app niet bereikbaar”.',
+        'Laat de planningsmodule met rust tot de tool klaar is.'
+      ]
+    },
+    'extra-rijtijd': {
+      doel: 'Welke rit kan deze nazorg er het makkelijkst bij hebben, en hoeveel rijtijd kost dat?',
+      stappen: [
+        'In DS Logboek, bij de uitkomstvraag: <b>Adres klaarzetten voor reistijd-check</b>.',
+        'Open de Ritmonitor, start <b>Extra rijtijd</b> en klik <span class="k">↓ Adres uit DS Logboek</span>.',
+        'Check de netwerkvinkjes en de servicetijd, klik <span class="k blauw">Bereken</span>.',
+        'Kies een rit met <span class="k">Kies</span>: die rit gaat open in de Ritmonitor.',
+        'Terug in DS Logboek: <span class="k">↓ Rijtijd</span> in het routeveld vult de rit in.'
+      ],
+      tekens: [
+        ['<span class="p g">−19 min</span>', 'Past: er blijft 19 min voorsprong over.'],
+        ['<span class="p o">+8 min</span>', 'De rit loopt tot 15 min uit.'],
+        ['<span class="p r">+22 min</span>', 'De rit loopt meer dan 15 min uit.'],
+        ['<span class="p a">⚠ krap</span>', 'Vlak na de huidige stop: kan, maar krap.'],
+        ['<span class="p a">⚠ korte rit</span>', 'Past alleen omdat de rit kort gepland staat: controleer dat.'],
+        ['<span class="p b">⚑ op het depot</span>', 'Rit is nog niet vertrokken: informeer de TL na het inplannen.']
+      ],
+      letop: [
+        'Eerste keer: vul je eigen ORS-sleutel in (uitleg op de <a href="tourtool/install-rijtijd.html">installatiepagina</a>).',
+        'Alleen Nederland en België.',
+        'De uitslag is een voorstel; plannen doe je zelf in DireXtion.'
+      ]
+    },
+    'same-day-text': {
+      doel: 'Zet de standaardopmerking voor een same day-oplossing in de order en slaat op.',
+      stappen: [
+        'Open de order in DireXtion Basic.',
+        'Start <b>Same day text</b>. De opmerking wordt toegevoegd en opgeslagen.'
+      ],
+      tekens: [['<span class="k">opmerking</span>', '“Wordt al opgelost, via nieuw bezoek van bezorger(s) op dezelfde dag”']]
+    },
+    'next-day-text': {
+      doel: 'Zet de standaardopmerking voor een ingeplande vervolgstop in de order en slaat op.',
+      stappen: [
+        'Open de order in DireXtion Basic.',
+        'Start <b>Next day text</b>. De opmerking wordt toegevoegd en opgeslagen.'
+      ],
+      tekens: [['<span class="k">opmerking</span>', '“Vervolg stop al ingepland door Delivery Support”']]
+    },
+    'service-check': {
+      doel: 'Zie welke services Coolblue nu aanbiedt voor het product in een order, met prijs.',
+      stappen: [
+        'Open de order in DireXtion Basic, of een productpagina op coolblue.nl/.be/.de.',
+        'Start <b>Service Check</b>. Het resultaat verschijnt rechtsboven.',
+        'Meer producten in de order? Kies eerst welk product je wilt checken.'
+      ],
+      tekens: [
+        ['<span class="p r">✕ Inbouwen NIET beschikbaar</span>', 'Inbouwapparaat, maar inbouwen wordt nu niet aangeboden.'],
+        ['<span class="k">–</span> <span class="k">+</span>', 'Venster klein maken en weer groot.']
+      ],
+      letop: [
+        'Laat zien wat de website toont <b>zonder postcode</b>. Prijzen zijn inclusief btw.',
+        'Duitse orders: Nederlandse servicenaam, de Duitse klein erachter.'
+      ]
+    },
+    'sft': {
+      doel: 'Sophia Filter Tool: controleert een CPC-casus en vult het formulier in Sophia voor je in.',
+      stappen: [
+        'Open een casus in Sophia.',
+        'Start <b>SFT 🤚</b>. De tool verschijnt rechtsboven en leest de casus en de factuur.',
+        'Bekijk het voorstel en controleer de ingevulde velden voor je de casus afrondt.'
+      ],
+      tekens: [],
+      letop: ['Voor het CPC-team; alleen zichtbaar in Sophia.']
+    },
+    'sft-autopilot': {
+      doel: 'Persoonlijke build van SFT die zekere casussen zelf afhandelt.',
+      stappen: [
+        'Open de caselijst in Sophia en start <b>SFT 🤖</b>.',
+        'Klik <span class="k blauw">Start autopilot ⚡</span>. De feed toont per casus ✓ approve, ✗ decline, ✋ overgeslagen of ⚠ gestopt.',
+        '<span class="k">■ Stop</span> stopt na de lopende stap.'
+      ],
+      tekens: [],
+      letop: ['Alleen voor Bas.', 'Houd het Sophia-venster (deels) zichtbaar: in een verborgen tab pauzeert hij.']
+    },
+    'vanessa-orders': {
+      doel: 'Maakt factuurorders voor witgoedreparaties in Vanessa, rij voor rij uit de ordersheet.',
+      stappen: [
+        'Klik eerst in het Vanessa-scherm, open dan DS Tools en start <b>Vanessa orders</b>.',
+        'Kopieer in de ordersheet (tab <b>Orders</b>) de rijen die een order nodig hebben en plak ze in het paneel.',
+        'Kies <span class="k">Volgende</span> (één stap), <span class="k">▶▶ Hele order</span> of <span class="k">▶▶ Alle orders</span>.',
+        'Klaar? <span class="k blauw">Kopieer voor kolom G</span> en plak de ordernummers in de sheet.'
+      ],
+      tekens: [
+        ['<span class="k">⏸ Pauze</span>', 'Maakt de stap af; daarna mag je zelf in Vanessa werken.'],
+        ['<span class="k">Stop</span>', 'Stopt direct.'],
+        ['<span class="k">×1–×3</span>', 'Tempo: hoe lang hij wacht tussen stappen.']
+      ],
+      letop: [
+        'Zelf typen of klikken in Vanessa tijdens een run <b>stopt alles</b>. Dat is bewust.',
+        'Rijen met al een ordernummer, dubbele rijen en rijen zonder bedrag worden overgeslagen.'
+      ]
+    },
+    'vanessa-refurbished': {
+      doel: 'Maakt een factuurorder per levering voor Refurbished in Vanessa.',
+      stappen: ['Klik eerst in het Vanessa-scherm, open dan DS Tools en start <b>Vanessa Refurbished</b>.', 'Volg de stappen in het paneel.'],
+      tekens: [],
+      letop: ['In ontwikkeling.']
+    },
+    'vanessa-deck': {
+      doel: 'Knoppen met toetsreeksen voor Vanessa, zoals een Stream Deck. Om stappen uit te zoeken.',
+      stappen: ['Klik eerst in het Vanessa-scherm, open dan DS Tools en start <b>Vanessa Deck</b>.', 'Druk op een knop om zijn toetsreeks naar Vanessa te sturen.'],
+      tekens: [],
+      letop: ['Hulpmiddel voor het bouwen van de Vanessa-tools.']
+    }
+  };
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // #id of #id1,id2: de tools van de pagina waar de balk geopend werd.
+  var hier = decodeURIComponent(location.hash.slice(1)).split(',').filter(Boolean);
+
+  function kaart(t) {
+    var h = H[t.id] || { doel: t.uitleg, stappen: [], tekens: [] };
+    var stappen = h.stappen.length ? '<div><div class="lbl">Zo werk je</div><ol class="st">' +
+      h.stappen.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol></div>' : '';
+    var tekens = h.tekens && h.tekens.length ? '<div><div class="lbl">Wat je ziet</div><div class="lg">' +
+      h.tekens.map(function (x) { return '<span class="s">' + x[0] + '</span><span>' + x[1] + '</span>'; }).join('') + '</div></div>' : '';
+    return '<section class="tool' + (hier.indexOf(t.id) >= 0 ? ' licht' : '') + '" id="' + esc(t.id) + '">' +
+      '<div class="th"><span class="ic">' + t.icoon + '</span><span class="tn">' + esc(t.naam) + '</span>' +
+      '<span class="waar">' + esc(t.waar) + '</span>' + (t.s === 'test' ? '<span class="tag">test</span>' : '') + '</div>' +
+      '<div class="doel">' + h.doel + '</div>' +
+      '<div class="kol' + (stappen && tekens ? '' : ' een') + '">' + stappen + tekens + '</div>' +
+      (h.letop && h.letop.length ? '<div class="let"><b>Let op</b><ul>' + h.letop.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul></div>' : '') +
+      '</section>';
+  }
+
+  function teken(tools) {
+    var eerst = tools.filter(function (t) { return hier.indexOf(t.id) >= 0; });
+    var rest = tools.filter(function (t) { return hier.indexOf(t.id) < 0; });
+    document.getElementById('nav').innerHTML = tools.map(function (t) {
+      return '<a href="#' + esc(t.id) + '"' + (hier.indexOf(t.id) >= 0 ? ' class="hier"' : '') + '>' + t.icoon + ' ' + esc(t.naam) + '</a>';
+    }).join('');
+    document.getElementById('tools').innerHTML =
+      (eerst.length ? '<div class="kop">Op deze pagina</div>' + eerst.map(kaart).join('') + '<div class="kop">Andere tools</div>'
+                    : '<div class="kop">Tools</div>') +
+      rest.map(kaart).join('');
+    if (eerst.length) { var el = document.getElementById(eerst[0].id); if (el) setTimeout(function () { el.scrollIntoView(); }, 0); }
+  }
+
+  // Lijst en status uit launcher.js + status.json: precies wat de balk toont.
+  Promise.all([
+    fetch(BASE + 'launcher.js?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }),
+    fetch(BASE + 'status.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; })
+  ]).then(function (x) {
+    window.__dsToolsLijst = null;
+    new Function('DS_TOOLS_MODUS', x[0])('lijst');
+    var st = (x[1] && x[1].tools) || {};
+    teken((window.__dsToolsLijst || []).map(function (t) { t.s = st[t.id] || t.status; return t; })
+      .filter(function (t) { return DEV || t.s === 'productie'; }));
+  }).catch(function (e) {
+    document.getElementById('tools').innerHTML = '<div class="melding">Toollijst laden mislukt: ' + esc(e.message) + '</div>';
+  });
+})();
+</script>
+</body>
+</html>
