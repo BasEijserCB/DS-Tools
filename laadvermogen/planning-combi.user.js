@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — Planning-combi (automatisch)
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.0.0
+// @version      1.1.0
 // @description  Zet in de planningsmodule vanzelf de vaste instellingen en het echte laadvermogen uit Fleetio.
 // @match        https://coolblue.dirextion.nl/ModulePlanningBeta*
 // @grant        none
@@ -18,12 +18,15 @@
    planningsmodule opent — geen toast, het draait toch al.
 
    Verschil met een klik: dit start tijdens het laden van de pagina. Daarom
-   eerst wachten op
-   - window.TourGrid (anders meldt laadvermogen.js met een alert dat hij
-     alleen in de planningsmodule werkt), en
-   - de werkperiode van het planningssjabloon (GetTemplates): die komt
-     asynchroon binnen en zou de 3 uur anders direct weer overschrijven.
-     Staat er na WACHT_SJABLOON_MS nog niets, dan toch doorgaan.
+   eerst wachten op window.TourGrid (anders meldt laadvermogen.js met een
+   alert dat hij alleen in de planningsmodule werkt), en dan meteen draaien.
+
+   Het planningssjabloon (GetTemplates) zet werkperiode en pauze asynchroon
+   en kan de 3 uur / 20 min dus ná ons weer overschrijven. In plaats van
+   daarop te wachten (v1.0.0 wachtte tot 10 s — te traag) kijken we
+   SJABLOON_VENSTER_MS lang mee: wijzigt de werkperiode naar iets anders
+   dan 3, dan draait planning-instellingen.js één keer opnieuw. Daarna
+   niet meer, zodat een handmatige wijziging blijft staan.
 
    @grant none: draait in de pagina zelf, want beide bestanden hebben ko,
    ASPx en TourGrid van de pagina nodig.
@@ -39,7 +42,8 @@
     { naam: 'Laadvermogen', cache: 'ds_planning_combi_lv_cache', src: 'laadvermogen.js' }
   ];
   var WACHT_GRID_MS = 60000;
-  var WACHT_SJABLOON_MS = 10000;
+  var SJABLOON_VENSTER_MS = 20000;
+  var POLL_MS = 150;
 
   function log(m) { console.log('[Planning-combi userscript] ' + m); }
 
@@ -67,26 +71,31 @@
       .catch(function (e) { console.error('[Planning-combi userscript] ' + b.naam + ' ophalen mislukt:', e); });
   }
 
-  function sjabloonGeladen() {
+  // Komt het sjabloon ná ons binnen, dan de instellingen één keer opnieuw.
+  function kijkNaarSjabloon() {
     var el = document.querySelector('select[data-bind*="workingPeriodHours"]');
-    if (!el || !window.ko) return false;
-    try {
-      var vm = window.ko.contextFor(el).$data;
-      return !!(vm && typeof vm.workingPeriodHours === 'function' && vm.workingPeriodHours());
-    } catch (e) { return false; }
+    var vm = null;
+    try { vm = el && window.ko ? window.ko.contextFor(el).$data : null; } catch (e) {}
+    var obs = vm && vm.workingPeriodHours;
+    if (!obs || typeof obs.subscribe !== 'function') return;
+    var sub = obs.subscribe(function (v) {
+      if (Number(v) === 3) return;
+      sub.dispose();
+      var code = null;
+      try { code = localStorage.getItem(BESTANDEN[0].cache); } catch (e) {}
+      if (code) { draai(BESTANDEN[0].naam, code); log('sjabloon overschreef de werkperiode (' + v + ' u) — instellingen opnieuw gezet'); }
+    });
+    setTimeout(function () { try { sub.dispose(); } catch (e) {} }, SJABLOON_VENSTER_MS);
   }
 
-  var begin = Date.now(), gridSinds = null;
+  var begin = Date.now();
   (function wacht() {
-    var nu = Date.now();
-    var grid = window.ko && window.TourGrid && document.getElementById('FilterChannel_VI');
-    if (!grid) {
-      if (nu - begin > WACHT_GRID_MS) { log('geen Rit overzicht gevonden binnen ' + WACHT_GRID_MS / 1000 + ' s — niets gedaan'); return; }
-      setTimeout(wacht, 500); return;
+    if (!(window.ko && window.TourGrid && document.getElementById('FilterChannel_VI'))) {
+      if (Date.now() - begin > WACHT_GRID_MS) { log('geen Rit overzicht gevonden binnen ' + WACHT_GRID_MS / 1000 + ' s — niets gedaan'); return; }
+      setTimeout(wacht, POLL_MS); return;
     }
-    if (gridSinds === null) gridSinds = nu;
-    if (!sjabloonGeladen() && nu - gridSinds < WACHT_SJABLOON_MS) { setTimeout(wacht, 500); return; }
-    if (!sjabloonGeladen()) log('geen sjabloonwaarden na ' + WACHT_SJABLOON_MS / 1000 + ' s — toch toegepast');
     BESTANDEN.forEach(laad);
+    kijkNaarSjabloon();
+    log('toegepast na ' + ((Date.now() - begin) / 1000).toFixed(1) + ' s');
   })();
 })();
