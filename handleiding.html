@@ -7,7 +7,7 @@
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+  html { scroll-behavior: smooth; scroll-padding-top: 12px; }
   body { margin: 0; background: #F2F7FC; font: 14px "Segoe UI", Arial, sans-serif; color: #333333; }
   .wrap { max-width: 900px; margin: 0 auto; padding: 28px 16px 64px; }
   h1 { font-size: 22px; color: #285dab; margin: 0 0 4px; }
@@ -15,8 +15,7 @@
   a { color: #0090e3; }
 
   /* Snelkeuze */
-  .nav { position: sticky; top: 0; z-index: 5; background: #F2F7FC; padding: 8px 0 10px; margin-bottom: 8px;
-    display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; }
+  .nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 6px; }
   .nav a { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 14px;
     background: #fff; border: 1px solid #cce9f9; color: #333333; text-decoration: none; font-size: 13px; white-space: nowrap; }
   .nav a:hover { border-color: #0090e3; color: #285dab; }
@@ -67,6 +66,11 @@
   .toast { display: inline-block; border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 600; color: #fff; }
   .num { font-variant-numeric: tabular-nums; }
 
+  .naarboven { position: fixed; right: 16px; bottom: 16px; z-index: 5; display: none; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 18px; background: #285dab; color: #fff; text-decoration: none; font-size: 13px; font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+  .naarboven:hover { background: #0090e3; }
+  .naarboven.aan { display: inline-flex; }
   .melding { border-radius: 6px; padding: 10px 12px; font-size: 13px; background: #fff0f0; color: #E50000; }
   footer { color: #999999; font-size: 12px; margin-top: 28px; }
 
@@ -79,11 +83,12 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" id="top">
   <h1>🧰 DS Tools — handleiding</h1>
   <p class="sub">Per tool: waar je hem gebruikt, de stappen, en wat de kleuren en tekens betekenen. Het <b>?</b> in de DS Tools-balk opent deze pagina bij de tools van de pagina waar je bent. Nog niet geïnstalleerd? Zie <a href="./">de installatiepagina</a>.</p>
 
   <nav class="nav" id="nav"></nav>
+  <a href="#top" class="naarboven" id="naarboven">↑ Alle tools</a>
 
   <div class="kop">De balk</div>
   <div class="tegels">
@@ -294,6 +299,14 @@
       letop: ['Hulpmiddel voor het bouwen van de Vanessa-tools.']
     }
   };
+
+  // Knop rechtsonder zodra de snelkeuze uit beeld is.
+  var nb = document.getElementById('naarboven');
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (e) { nb.classList.toggle('aan', !e[0].isIntersecting); })
+      .observe(document.getElementById('nav'));
+  }
+  nb.addEventListener('click', function (e) { e.preventDefault(); window.scrollTo(0, 0); history.replaceState(null, '', location.pathname + location.search); });
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
