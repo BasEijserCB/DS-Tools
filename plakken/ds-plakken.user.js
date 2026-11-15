@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Plakken in de Order wizard
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.1.0
+// @version      1.2.0
 // @description  Zet in de Order wizard (service-order) een knop "Plakken uit DS Logboek" onder Order sjabloon.
 // @match        https://coolblue.dirextion.nl/Import/*
 // @grant        none
@@ -136,6 +136,20 @@
     if (inhoudVoorbeeld) inhoud.className = inhoudVoorbeeld.className;
     blok.appendChild(inhoud);
 
+    // Het enige teken dat dit een add-on is: de lijn onder de kop in DS Tools-oranje
+    // (de toastkleur van DS Plakken). De lijn zit op de kop of bovenaan de inhoud,
+    // afhankelijk van het thema; zet de kleur waar hij zit.
+    var ORANJE = '#e67e22';
+    var csKop = getComputedStyle(kop);
+    var csInhoud = inhoudVoorbeeld ? getComputedStyle(inhoudVoorbeeld) : null;
+    if (parseFloat(csKop.borderBottomWidth) > 0) {
+      nieuweKop.style.borderBottomColor = ORANJE;
+    } else if (csInhoud && parseFloat(csInhoud.borderTopWidth) > 0) {
+      inhoud.style.borderTopColor = ORANJE;
+    } else {
+      nieuweKop.style.borderBottom = '1px solid ' + ORANJE;
+    }
+
     // Eén formulierregel "Klembord: [knop]", gekloond van de regel "Order sjabloon"
     // zodat labelbreedte, uitlijning en marges van DireXtion zelf komen.
     var knopEl = document.createElement('div');
@@ -152,7 +166,7 @@
       rij.querySelectorAll('[id]').forEach(function (e) { e.removeAttribute('id'); });
       rij.querySelectorAll('[for]').forEach(function (e) { e.removeAttribute('for'); });
       rij.querySelectorAll('.dx-field-item-required-mark').forEach(function (e) { e.remove(); });
-      labelTekst.textContent = 'Klembord:';
+      labelTekst.textContent = '🚀 Klembord:';   // 🚀 = icoon van DS Plakken in de launcher
       veld.innerHTML = '';
       veld.appendChild(knopEl);
       veld.appendChild(status);
