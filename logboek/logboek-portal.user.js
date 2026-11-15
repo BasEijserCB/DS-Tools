@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek op de consumer portal
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.0.0
+// @version      1.1.0
 // @description  Opent DS Logboek vanzelf op de consumer portal, in de lege rechtermarge naast de pagina.
 // @match        https://coolbluebezorgt.dirextion.nl/*
 // @grant        none
@@ -16,8 +16,12 @@
    Plek: de portal heeft een smalle kolom in het midden met aan beide kanten
    lege ruimte. Het logboek komt rechts in die marge, op de hoogte van de tabs
    (Informatie / Klantgegevens / Zendinginformatie). Is de marge te smal
-   (laptop, of de brede stand van 600px), dan schuift de pagina opzij: de html
-   krijgt rechts padding, waardoor de kolom in de resterende ruimte centreert.
+   (laptop, of de brede stand van 600px), dan komt het logboek tegen de
+   rechterrand en krijgt alleen de kolom (#bodyContainer, 1000px) de ruimte
+   links ervan: eerst door op te schuiven, en als hij daar niet op ware grootte
+   past met CSS-zoom tot 75%. Nog smaller venster: niets aanpassen, het
+   logboek ligt erover (v1.1.0; v1.0.0 zette padding op <html>, wat de kolom
+   liet staan en een tweede witte laag gaf).
 
    Dat gaat via de hook DS_LOGBOEK_PLEK in ds-logboek.js (v1.44.0). Die blijft
    staan, dus ook een logboek dat daarna met de bookmarklet gestart wordt,
@@ -45,7 +49,11 @@
     }
     return null;
   }
+  // De portal is één blok #bodyContainer van 1000px, gecentreerd met
+  // margin:auto (probe 15-11-2026). Terugval: omhoog vanaf de tab.
   function kolom(tab) {
+    var bc = document.getElementById('bodyContainer');
+    if (bc) return bc;
     var el = tab, beste = null;
     while (el && el !== document.body) {
       var r = el.getBoundingClientRect();
@@ -55,10 +63,20 @@
     return beste;
   }
 
+  var MIN_ZOOM = 0.75;    // kleiner wordt de portal niet; dan overlapt het logboek liever
   var huidig = null;      // het wrapper-element dat we nu plaatsen
   var ro = null;
+  var verschoven = null;  // de kolom waaraan we iets veranderd hebben
 
-  function herstelPagina() { document.documentElement.style.paddingRight = ''; }
+  // Alleen de kolom zelf aanpassen, nooit <html>/<body>: padding op <html>
+  // (v1.0.0) liet de kolom staan en gaf een tweede witte laag.
+  function herstelPagina() {
+    if (!verschoven) return;
+    verschoven.style.marginLeft = '';
+    verschoven.style.marginRight = '';
+    verschoven.style.zoom = '';
+    verschoven = null;
+  }
 
   function plaats() {
     if (!huidig || !huidig.isConnected) return;
@@ -66,27 +84,48 @@
     var col = tab && kolom(tab);
     var breedte = huidig.offsetWidth || 360;
     var hoogte = huidig.offsetHeight || 620;
+    var s = huidig.style;
 
-    // Eerst zonder opschuiven meten.
+    // Eerst meten zoals de portal zelf is.
     herstelPagina();
     var rc = col ? col.getBoundingClientRect() : null;
     var vrij = rc ? window.innerWidth - rc.right : 0;
-    var top = tab ? Math.max(MARGE, tab.getBoundingClientRect().top) : 80;
-    if (top + hoogte > window.innerHeight - MARGE) top = Math.max(MARGE, window.innerHeight - MARGE - hoogte);
 
-    var s = huidig.style;
-    s.top = top + 'px';
-    s.bottom = 'auto';
     if (rc && vrij >= breedte + 2 * MARGE) {
-      // Past in de marge: tegen de kolom aan.
+      // 1. Past in de marge rechts: tegen de kolom aan, pagina ongemoeid.
       s.left = (rc.right + MARGE) + 'px';
       s.right = 'auto';
     } else {
-      // Past niet: pagina opzij en het logboek tegen de rechterrand.
-      document.documentElement.style.paddingRight = (breedte + 2 * MARGE) + 'px';
+      // Logboek tegen de rechterrand; de kolom krijgt de ruimte links ervan.
       s.left = 'auto';
       s.right = MARGE + 'px';
+      if (col) {
+        var ruimte = window.innerWidth - breedte - 2 * MARGE;   // links van het logboek
+        if (ruimte >= rc.width) {
+          // 2. Kolom past op ware grootte: opschuiven, gecentreerd in die ruimte.
+          col.style.marginLeft = Math.max(0, Math.floor((ruimte - rc.width) / 2)) + 'px';
+          col.style.marginRight = '0px';
+          verschoven = col;
+        } else {
+          // 3. Past niet: kolom iets kleiner, tot MIN_ZOOM. Marges schalen mee
+          //    met zoom, dus delen door z.
+          var z = (ruimte - MARGE) / rc.width;
+          if (z >= MIN_ZOOM) {
+            col.style.zoom = String(Math.floor(z * 100) / 100);
+            col.style.marginLeft = (MARGE / z) + 'px';
+            col.style.marginRight = '0px';
+            verschoven = col;
+          }
+          // Nog kleiner venster: niets aanpassen, het logboek ligt erover.
+        }
+      }
     }
+
+    // Hoogte pas na het verschuiven/zoomen meten: zoom verplaatst de tab.
+    var top = tab ? Math.max(MARGE, tab.getBoundingClientRect().top) : 80;
+    if (top + hoogte > window.innerHeight - MARGE) top = Math.max(MARGE, window.innerHeight - MARGE - hoogte);
+    s.top = top + 'px';
+    s.bottom = 'auto';
   }
 
   // Wordt door ds-logboek.js aangeroepen zodra het paneel er staat.
