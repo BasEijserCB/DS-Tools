@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Plakken in de Order wizard
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.0
+// @version      1.2.1
 // @description  Zet in de Order wizard (service-order) een knop "Plakken uit DS Logboek" onder Order sjabloon.
 // @match        https://coolblue.dirextion.nl/Import/*
 // @grant        none
@@ -168,8 +168,13 @@
       rij.querySelectorAll('.dx-field-item-required-mark').forEach(function (e) { e.remove(); });
       labelTekst.textContent = '🚀 Klembord:';   // 🚀 = icoon van DS Plakken in de launcher
       veld.innerHTML = '';
-      veld.appendChild(knopEl);
-      veld.appendChild(status);
+      // Eigen omhulsel: de veldcel van DireXtion is een flexrij, en dan kwam de
+      // melding naast de knop te staan in plaats van eronder.
+      var stapel = document.createElement('div');
+      stapel.style.cssText = 'display:block;width:100%;';
+      stapel.appendChild(knopEl);
+      stapel.appendChild(status);
+      veld.appendChild(stapel);
       inhoud.appendChild(rij);
     } else {
       // Terugval als de opbouw anders is dan verwacht.
