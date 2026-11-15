@@ -43,6 +43,7 @@
 !/ev/
 /ev/*
 !/ev/ev-ritten.js
+!/ev/ev-ritten.user.js
 
 !/extern/
 /extern/*

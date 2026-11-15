@@ -21,8 +21,9 @@
    - De rittenlijst wordt door SignalR/Knockout steeds opnieuw getekend:
      een MutationObserver zet de markering na elke wijziging terug.
    - EV-rit: ⚡ EV-chip rechts in de tegel (in de lege ruimte achter
-     apparaat/tijden/km, naast het kruisje) en een groene linkerrand. Tot
-     v1.1.0 stond de chip vóór de ritnaam, tussen de tekst — te druk.
+     apparaat/tijden/km, naast het kruisje). Tot v1.1.0 stond de chip vóór
+     de ritnaam, tussen de tekst — te druk; de groene linkerrand is in
+     v1.2.0 om dezelfde reden vervallen.
      Onbekend: geen markering, alleen een telling in het pilletje.
 
    NIET TOEGEPAST ALS
@@ -34,7 +35,7 @@
 (function () {
   'use strict';
 
-  var EV_VERSION = '1.1.0';
+  var EV_VERSION = '1.2.0';
 
   // /exec-URL van gas-laadvermogen.js (zelfde als in laadvermogen.js).
   var GAS_URL = 'https://script.google.com/macros/s/AKfycbxcg30KXrBjnnnt2e8wb_ThaLP43LkvMuKrUFdQ8Y11ZjkJC6GcwIjUFc_bWFRxQS_EtA/exec';
@@ -48,7 +49,7 @@
   var STYLE_ID = 'ev-ritten-style';
   var PILL_ID = 'ev-ritten-pill';
   var CHIP = 'ev-ritten-chip';
-  var RIJ = 'ev-ritten-rij';
+  var RIJ = 'ev-ritten-rij';   // alleen nog om de rand van v1.0–1.1 op te ruimen
   var CEL = 'ev-ritten-cel';
 
   // ── Aan/uit ───────────────────────────────────────────────────────────────
@@ -188,7 +189,6 @@
   }
 
   function markeer(rit) {
-    rit.rijen.forEach(function (tr) { if (!tr.classList.contains(RIJ)) tr.classList.add(RIJ); });
     for (var r = 0; r < rit.rijen.length; r++) {
       if (rit.rijen[r].querySelector('.' + CHIP)) return;
     }
@@ -258,8 +258,7 @@
       'td.' + CEL + '{position:relative;}' +
       '.' + CHIP + '{position:absolute;right:28px;top:50%;transform:translateY(-50%);' +
         'padding:1px 6px;border-radius:4px;background:#d4edda;color:#155724;border:1px solid #00B900;' +
-        'font-size:11px;font-weight:700;line-height:14px;white-space:nowrap;cursor:default;pointer-events:none;}' +
-      'tr.' + RIJ + ' > td:first-child{box-shadow:inset 3px 0 0 #00B900;}';
+        'font-size:11px;font-weight:700;line-height:14px;white-space:nowrap;cursor:default;pointer-events:none;}';
     document.head.appendChild(st);
   }
 
