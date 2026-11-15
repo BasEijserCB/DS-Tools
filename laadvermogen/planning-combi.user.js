@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — Planning-combi (automatisch)
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.0
+// @version      1.3.0
 // @description  Zet in de planningsmodule vanzelf de vaste instellingen en het echte laadvermogen uit Fleetio.
 // @match        https://coolblue.dirextion.nl/ModulePlanningBeta*
 // @grant        none
@@ -99,8 +99,11 @@
   function sinds() { return ((Date.now() - begin) / 1000).toFixed(1) + ' s'; }
 
   // Instellingen: zodra Knockout de knoppen gebonden heeft.
+  // FilterChannel = de DevExpress-combobox zelf, niet alleen de input: die
+  // bestaat pas als het besturingselement geïnitialiseerd is (v1.3.0).
   function veldenKlaar() {
-    if (!window.ko || !document.getElementById('FilterChannel_VI')) return false;
+    var ch = window.FilterChannel;
+    if (!window.ko || !ch || typeof ch.GetValue !== 'function') return false;
     var el = document.querySelector('[data-bind*="toggleAutoReload"]');
     try { return !!(el && window.ko.contextFor(el)); } catch (e) { return false; }
   }

@@ -10,16 +10,17 @@
    WAT HET ZET
    - Vinkjes "rit op kaart" en "visit op kaart" (showTourOnMap,
      showVisitOnMap) aan.
-   - Kanaalfilter op 2mans levering (id 16). Dit triggert een callback
-     van TourGrid; laadvermogen.js hangt aan EndCallback en past zich
-     daarna vanzelf opnieuw toe.
+   - Kanaalfilter op 2mans levering (id 16), via FilterChannel.SetValue
+     (v1.1.0). Staat er al een Rit overzicht, dan #quick-refresh; dat
+     triggert een callback van TourGrid, en laadvermogen.js hangt aan
+     EndCallback en past zich daarna vanzelf opnieuw toe.
    - Auto-reload aan.
    - Werkperiode 3 uur, eerste pauze 20 minuten.
    ───────────────────────────────────────────────────────────── */
 (function () {
   'use strict';
 
-  var PLANNING_VERSION = '1.0.0';
+  var PLANNING_VERSION = '1.1.0';
 
   if (!/ModulePlanningBeta/i.test(location.href)) return;
 
@@ -38,12 +39,31 @@
     }
   });
 
-  var hidden = document.getElementById('FilterChannel_VI');
-  var display = document.getElementById('FilterChannel_I');
-  if (hidden && display) {
-    hidden.value = '16';
-    display.value = '2mans levering';
-    if (typeof ASPx !== 'undefined') ASPx.ETextChanged('FilterChannel');
+  // Kanaal via de API van de DevExpress-combobox (zoals schuifalias.js), niet
+  // meer door de verborgen input te beschrijven en ETextChanged af te vuren.
+  // Die oude route werkte alleen als de pagina al helemaal klaar was (klik
+  // ná het kiezen van een depot); automatisch bij het laden (Tampermonkey)
+  // brak hij het opzoeken van een depot. SetValue vuurt geen callback af:
+  // staat er al een Rit overzicht, dan verversen we zelf via #quick-refresh,
+  // net als de knop in de pagina.
+  var ch = window.FilterChannel;
+  if (ch && typeof ch.SetValue === 'function' && typeof ch.GetValue === 'function') {
+    if (String(ch.GetValue()) !== '16') {
+      ch.SetValue('16');
+      if (String(ch.GetValue()) !== '16') console.warn('[Planning-instellingen] kanaal 2mans levering (16) niet te kiezen');
+      else if (window.TourGrid) {
+        var ververs = document.getElementById('quick-refresh');
+        if (ververs) ververs.click();
+      }
+    }
+  } else {
+    var hidden = document.getElementById('FilterChannel_VI');
+    var display = document.getElementById('FilterChannel_I');
+    if (hidden && display) {
+      hidden.value = '16';
+      display.value = '2mans levering';
+      if (typeof ASPx !== 'undefined') ASPx.ETextChanged('FilterChannel');
+    }
   }
 
   var root = vm('[data-bind*="toggleAutoReload"]', '$root');
