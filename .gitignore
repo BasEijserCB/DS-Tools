@@ -1,13 +1,49 @@
-.DS_Store
+# Whitelist: de repo is publiek en bevat alleen wat nodig is om de tools te laten werken.
+# Alles is genegeerd, behalve wat hieronder met ! terugkomt:
+#   - code die bookmarklets/launcher ophalen van raw.githubusercontent.com
+#   - pagina's die GitHub Pages serveert (installatie, beheer)
+# Documentatie (CLAUDE.md, README.md), build.py, GAS-broncode, loader-bronnen,
+# probes en exports blijven lokaal. Nieuwe tool? Zijn .js (en install-pagina) hier toevoegen.
 
-# Sheet-exports — alleen lokaal, horen niet in de repo (zie mapping-kolom-J.tsv voor de mapping zelf)
-*.xlsx
+/*
+!/.gitignore
 
-# Lokale sleutels — nooit committen
+# Pagina's (GitHub Pages)
+!/index.html
+!/install.html
+
+# Code geladen door de loaders / launcher
+!/ds-logboek.js
+!/paste-bookmarklet.js
+
+!/launcher/
+/launcher/*
+!/launcher/launcher.js
+!/launcher/status.json
+!/launcher/beheer.html
+!/launcher/install-dev.html
+
+!/tourtool/
+/tourtool/*
+!/tourtool/extra-rijtijd.js
+!/tourtool/install-rijtijd.html
+
+!/laadvermogen/
+/laadvermogen/*
+!/laadvermogen/laadvermogen.js
+!/laadvermogen/planning-instellingen.js
+!/laadvermogen/install-laadvermogen.html
+
+!/schuifalias/
+/schuifalias/*
+!/schuifalias/schuifalias.js
+!/schuifalias/install-schuifalias.html
+
+!/extern/
+/extern/*
+!/extern/*.js
+
+# Vangnet: nooit, ook niet binnen een gewhiteliste map
 *.local.js
-
-# Lokaal gerenderde voorbeeldmails van gas-dagmail.js — bevatten echte namen en ordernummers uit de export
-dagmail-voorbeelden/
-
-# HAR-exports bevatten sessietokens
 *.har
+*.xlsx
