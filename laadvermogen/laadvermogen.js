@@ -21,6 +21,14 @@
    - De kleur van de twee gewichtskolommen wordt opnieuw berekend; die
      kwam van de server en was op de 730 kg gebaseerd.
 
+   EV (v1.1.0)
+   Een rit met een elektrische bus krijgt een ⚡ EV-chip in de kolom
+   Kenteken. Dezelfde data als de EV-ritten-tool in de Ritmonitor (`ev` uit
+   gas-laadvermogen.js, op route-id). Niet in de gewichtskolom — die leest
+   deze tool zelf terug — en niet in de Alias, die bewerkbaar is en door
+   schuifalias.js gelezen wordt. Staat Kenteken niet in beeld, dan alleen
+   de telling in het pilletje.
+
    HERKENBAAR GECORRIGEERD
    Een gecorrigeerde cel staat cursief, met de oude waarde in de tooltip.
    Een route zonder Fleetio-voertuig houdt de waarde van DireXtion en krijgt
@@ -34,7 +42,7 @@
 (function () {
   'use strict';
 
-  var LAADVERMOGEN_VERSION = '1.0.0';
+  var LAADVERMOGEN_VERSION = '1.1.0';
 
   // /exec-URL van gas-laadvermogen.js. Leeg = de tool meldt dat en doet niets.
   var GAS_URL = 'https://script.google.com/macros/s/AKfycbxcg30KXrBjnnnt2e8wb_ThaLP43LkvMuKrUFdQ8Y11ZjkJC6GcwIjUFc_bWFRxQS_EtA/exec';
@@ -55,7 +63,8 @@
     max:     { veld: 'MaxLoadCapacity',                 kop: 'Maximale gewicht voertuig' },
     totaal:  { veld: 'TotalWeight',                     kop: 'Totaal gewicht' },
     beschik: { veld: 'AvailableLoadCapacity',           kop: 'Beschikbaar gewicht' },
-    pct:     { veld: 'AvailableLoadCapacityPercentage', kop: null }
+    pct:     { veld: 'AvailableLoadCapacityPercentage', kop: null },
+    kenteken:{ veld: 'LicensePlate',                    kop: 'Kenteken' }
   };
 
   var PILL_ID = 'laadvermogen-pill';
@@ -94,7 +103,9 @@
 
   function haalData(forceer, klaar) {
     var c = lees(KEY_DATA);
-    if (!forceer && c && c.data && c.data.ok && Date.now() - c.tijd < DATA_MAX_MIN * 60000) {
+    // Zonder `ev` is de cache van vóór v1.1.0 / het bijgewerkte endpoint:
+    // dan opnieuw ophalen in plaats van een half uur geen EV's te tonen.
+    if (!forceer && c && c.data && c.data.ok && c.data.ev && Date.now() - c.tijd < DATA_MAX_MIN * 60000) {
       data = c.data; fout = ''; klaar(); return;
     }
     if (!GAS_URL) { fout = 'GAS_URL is nog niet ingevuld'; klaar(); return; }
@@ -146,7 +157,26 @@
   }
 
   // ── Toepassen ─────────────────────────────────────────────────────────────
-  var stand = { goed: 0, zonder: 0, onbekend: 0, rijen: 0, reden: '' };
+  var stand = { goed: 0, zonder: 0, onbekend: 0, rijen: 0, ev: 0, reden: '' };
+  var EV_CHIP = 'lv-ev-chip';
+
+  // ⚡ EV in de kentekencel. De server rendert de rij bij elke callback
+  // opnieuw (dan is de chip weg); draait pasToe zonder nieuwe render, dan
+  // staat hij er al en komt er geen tweede bij.
+  function zetEv(tr, pKent, isEv) {
+    var cel = pKent >= 0 ? tr.cells[pKent] : null;
+    var oud = tr.querySelector('.' + EV_CHIP);
+    if (!isEv) { if (oud) oud.parentNode.removeChild(oud); return; }
+    if (!cel || oud) return;
+    var chip = document.createElement('span');
+    chip.className = EV_CHIP;
+    chip.textContent = '\u26A1 EV';
+    chip.title = 'Elektrische bus (Fleetio, via de sheet van vannacht)';
+    chip.style.cssText = 'display:inline-block;margin-left:4px;padding:0 5px;border-radius:4px;' +
+      'background:#d4edda;color:#155724;border:1px solid #00B900;font-size:10px;font-weight:700;' +
+      'line-height:14px;vertical-align:middle;white-space:nowrap;';
+    cel.appendChild(chip);
+  }
 
   function kleurVoor(fractie) {
     return fractie > ROOD_BOVEN ? KLEUR.rood : fractie >= ORANJE_VANAF ? KLEUR.oranje : KLEUR.groen;
@@ -163,7 +193,7 @@
   }
 
   function pasToe() {
-    stand = { goed: 0, zonder: 0, onbekend: 0, rijen: 0, reden: '' };
+    stand = { goed: 0, zonder: 0, onbekend: 0, rijen: 0, ev: 0, reden: '' };
     var rijen = document.querySelectorAll('#TourGrid_DXMainTable tr.dxgvDataRow[data-id]');
     stand.rijen = rijen.length;
 
@@ -179,9 +209,15 @@
     var pTot = kolomPositie(VELD.totaal);
     var pBes = kolomPositie(VELD.beschik);
     var pPct = kolomPositie(VELD.pct);
+    var pKent = kolomPositie(VELD.kenteken);
+    var evSet = {};
+    (data.ev || []).forEach(function (x) { evSet[String(x)] = true; });
 
     for (var i = 0; i < rijen.length; i++) {
       var tr = rijen[i], id = tr.getAttribute('data-id');
+      // Vóór de gewichtslogica: die slaat rijen over met `continue`.
+      if (evSet[id]) stand.ev++;
+      zetEv(tr, pKent, !!evSet[id]);
       var cMax = tr.cells[pMax];
       if (!cMax || !/kg\s*$/.test(cMax.textContent.trim())) { stand.onbekend++; continue; }
       var oudTekst = origineel(cMax);
@@ -258,6 +294,7 @@
       achter = '#fff8e1'; rand = '#ffc107';
     } else {
       tekst = 'Laadvermogen uit Fleetio: ' + stand.goed + ' van ' + stand.rijen + ' ritten' +
+        (stand.ev ? ' · \u26A1 ' + stand.ev + ' EV' : '') +
         (stand.zonder ? ' · ' + stand.zonder + ' zonder Fleetio-voertuig' : '') +
         (stand.onbekend ? ' · ' + stand.onbekend + ' niet in de sheet' : '');
       achter = stand.goed ? '#d4edda' : '#fff8e1';
