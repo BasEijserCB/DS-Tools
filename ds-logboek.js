@@ -345,6 +345,22 @@
     localStorage.removeItem(PARK_KEY);
   }
 
+  // ── HOOK VOOR DE TAMPERMONKEY-STARTERS (logboek/*.user.js) ───
+  // Een starter mag DS_LOGBOEK_PLEK zetten om het paneel ergens anders neer
+  // te zetten dan linksonder; zonder starter (bookmarklet) verandert er niets.
+  // __dsLogboek laat de Basic-starter zien welke order open staat, of er al
+  // iets beantwoord is, en laat hem parkeren bij het wisselen van order.
+  window.__dsLogboek = {
+    wrapper: wrapper,
+    order: scrapedOrder,
+    bezig: function () {
+      return answeredKeys.some(function (k) { return k !== 'fname' && k !== 'lname' && autoFilledKeys.indexOf(k) === -1; });
+    },
+    parkeer: parkeerSessie
+  };
+  try { if (typeof window.DS_LOGBOEK_PLEK === 'function') window.DS_LOGBOEK_PLEK(wrapper, iframe); }
+  catch (e) { console.error('[DS Logboek] DS_LOGBOEK_PLEK faalde:', e); }
+
   function vindAndereGeparkeerdeSessies() {
     var sessies = [];
     for (var i = 0; i < localStorage.length; i++) {
@@ -1300,7 +1316,7 @@
             '<span style="font-size:11px;color:'+(geenOrderMode?'#ff6600':'#999999')+';">'+(geenOrderMode?'Gegevens gewist':'Geen order')+'</span>' +
           '</div>' : '') +
         '</div></div>' +
-        '<div class="version-bar">DS Logboek v1.43.0' +
+        '<div class="version-bar">DS Logboek v1.44.0' +
           (callData.user ? ' · <span style="color:#999999;">'+callData.user+'</span> ' + (nameEditConfirm ? '<span style="color:#999999;margin-left:4px;">Naam wissen?</span> <span id="btn-edit-name-yes" style="cursor:pointer;color:#E50000;font-weight:600;margin-left:4px;">Ja</span> <span id="btn-edit-name-no" style="cursor:pointer;color:#999999;margin-left:4px;">Nee</span>' : '<span id="btn-edit-name" title="Naam wijzigen" style="cursor:pointer;opacity:0.45;margin-left:1px;">✎</span>') : '') +
         '</div>' +
       '</div>';

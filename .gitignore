@@ -46,6 +46,11 @@
 !/ev/ev-ritten.js
 !/ev/ev-ritten.user.js
 
+!/logboek/
+/logboek/*
+!/logboek/logboek-portal.user.js
+!/logboek/logboek-basic.user.js
+
 !/plakken/
 /plakken/*
 !/plakken/ds-plakken.user.js
