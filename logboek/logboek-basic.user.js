@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.1.0
+// @version      1.1.1
 // @description  Knop "📋 DS Logboek" rechts van de tabs Orders | Problemen | Rit overzicht; het logboek komt over de orderlijst en waarschuwt bij het wisselen van order.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @grant        none
@@ -137,8 +137,10 @@
     w.animate([{ boxShadow: '0 0 0 4px ' + ORANJE }, { boxShadow: '0 8px 24px rgba(0,0,0,0.18)' }], { duration: 700 });
   }
 
-  // De tabs linksboven: Orders | Problemen | Rit overzicht. De knop komt
-  // rechts van "Rit overzicht" en neemt de stijl over van een niet-geselecteerde tab.
+  // De tabs linksboven (bij Bas: Orders | Problemen | Rit overzicht). Niet
+  // iedereen heeft dezelfde tabs, dus de knop komt direct rechts van de
+  // láátste tab in die rij, wat dat ook is. De rij wordt gevonden via één
+  // bekende tab; de stijl komt van een niet-geselecteerde tab uit dezelfde rij.
   function lijstTab(naam) {
     var els = document.querySelectorAll('a, li, span, div');
     for (var i = 0; i < els.length; i++) {
@@ -157,12 +159,16 @@
   function zorgVoorKnop() {
     var bestaand = document.getElementById(KNOP_ID);
     // Alleen als er een order (visit) open staat: dan staat het visit-tabje rechts.
-    var anker = orderTab() ? lijstTab('Rit overzicht') : null;
-    if (!anker) { if (bestaand) bestaand.remove(); return; }
-    if (bestaand && bestaand.previousElementSibling === anker) return;
+    var bekend = orderTab() ? (lijstTab('Orders') || lijstTab('Problemen') || lijstTab('Rit overzicht')) : null;
+    if (!bekend) { if (bestaand) bestaand.remove(); return; }
+    var tabs = Array.prototype.filter.call(bekend.parentNode.children, function (t) {
+      return t.id !== KNOP_ID && t.getBoundingClientRect().width > 0;
+    });
+    var laatste = tabs[tabs.length - 1] || bekend;
+    if (bestaand && bestaand.previousElementSibling === laatste) return;
     if (bestaand) bestaand.remove();
-    var voorbeeld = [lijstTab('Problemen'), anker, lijstTab('Orders')].filter(function (t) { return t && !geselecteerd(t); })[0] || anker;
-    anker.parentNode.insertBefore(maakKnop(voorbeeld), anker.nextSibling);
+    var voorbeeld = tabs.filter(function (t) { return !geselecteerd(t); })[0] || laatste;
+    laatste.parentNode.insertBefore(maakKnop(voorbeeld), laatste.nextSibling);
   }
 
   // ── Plek: bovenaan over de orderlijst ────────────────────────
