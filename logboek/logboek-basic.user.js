@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.1.1
-// @description  Knop "📋 DS Logboek" rechts van de tabs Orders | Problemen | Rit overzicht; het logboek komt over de orderlijst en waarschuwt bij het wisselen van order.
+// @version      1.1.2
+// @description  Knop "📋 DS Logboek" rechts van de tabs linksboven; het logboek waarschuwt bij het wisselen van order.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @grant        none
 // @run-at       document-idle
@@ -20,10 +20,8 @@
       tab-klikafhandeling er niet op in), met een oranje onderlijn als teken
       dat het een add-on is. Alleen zichtbaar als er een order open staat,
       herkend aan het visit-tabje (cijfers) bovenaan het orderpaneel.
-   2. Plek. Het logboek komt bovenaan over de orderlijst links: die heb je
-      tijdens het gesprek niet meer nodig, het midden- en rechterpaneel
-      (adres, telefoon, artikelen, taken) blijven vrij. Via de hook
-      DS_LOGBOEK_PLEK in ds-logboek.js (v1.44.0).
+   2. Plek. Het logboek staat linksonder, zijn eigen standaardplek: op Basic
+      het minst in de weg (v1.1.2).
    3. Orderwissel. Basic wisselt van order zonder nieuwe pagina; het logboek
       leest de order maar één keer. Verandert het ordernummer terwijl het
       logboek open is, dan komt er bovenin het paneel een balk met
@@ -37,7 +35,6 @@
   var KNOP_ID = 'ds-logboek-tabknop';
   var BALK_ID = 'ds-logboek-wisselbalk';
   var ORANJE = '#e67e22';
-  var MARGE = 8;
 
   function zichtbaar(el) { var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }
 
@@ -156,64 +153,54 @@
     return /selected|active/i.test(tab.className) || tab.getAttribute('aria-selected') === 'true';
   }
 
+  // Een "echte" tab in dezelfde rij: zelfde soort element, zelfde hoogte, met tekst.
+  // De rij bevat meer dan alleen tabs (v1.1.1 zette de knop daardoor helemaal rechts).
+  function tabsInRij(bekend) {
+    var rb = bekend.getBoundingClientRect();
+    return Array.prototype.filter.call(bekend.parentNode.children, function (t) {
+      if (t.id === KNOP_ID || t.tagName !== bekend.tagName || !t.textContent.trim()) return false;
+      var r = t.getBoundingClientRect();
+      return r.width > 0 && r.width < 400 && Math.abs(r.height - rb.height) < 4 && Math.abs(r.top - rb.top) < 4;
+    });
+  }
+
+  // De knop zweeft (position:fixed) direct rechts van de meest rechtse tab, in
+  // plaats van in DireXtion's eigen rij te staan: daar bepaalt hun opmaak waar
+  // hij landt. Elke controle (na DOM-wijziging en resize) zet hem opnieuw goed.
   function zorgVoorKnop() {
-    var bestaand = document.getElementById(KNOP_ID);
+    var k = document.getElementById(KNOP_ID);
     // Alleen als er een order (visit) open staat: dan staat het visit-tabje rechts.
     var bekend = orderTab() ? (lijstTab('Orders') || lijstTab('Problemen') || lijstTab('Rit overzicht')) : null;
-    if (!bekend) { if (bestaand) bestaand.remove(); return; }
-    var tabs = Array.prototype.filter.call(bekend.parentNode.children, function (t) {
-      return t.id !== KNOP_ID && t.getBoundingClientRect().width > 0;
-    });
-    var laatste = tabs[tabs.length - 1] || bekend;
-    if (bestaand && bestaand.previousElementSibling === laatste) return;
-    if (bestaand) bestaand.remove();
-    var voorbeeld = tabs.filter(function (t) { return !geselecteerd(t); })[0] || laatste;
-    laatste.parentNode.insertBefore(maakKnop(voorbeeld), laatste.nextSibling);
-  }
-
-  // ── Plek: bovenaan over de orderlijst ────────────────────────
-  function orderlijstPaneel() {
-    var els = document.querySelectorAll('a, li, span, div');
-    for (var i = 0; i < els.length; i++) {
-      if (els[i].children.length > 1 || els[i].textContent.trim() !== 'Orders') continue;
-      var r = els[i].getBoundingClientRect();
-      if (r.width === 0 || r.left > window.innerWidth * 0.3 || r.top > 320) continue;
-      // Omhoog tot het paneel: breed genoeg, maar nog niet de hele pagina.
-      var el = els[i], beste = null;
-      while (el && el !== document.body) {
-        var re = el.getBoundingClientRect();
-        if (re.width > window.innerWidth * 0.6) break;
-        if (re.height > window.innerHeight * 0.5) beste = el;
-        el = el.parentElement;
-      }
-      if (beste) return beste;
+    if (!bekend) { if (k) k.remove(); return; }
+    var tabs = tabsInRij(bekend);
+    if (!tabs.length) tabs = [bekend];
+    var laatste = tabs.reduce(function (a, t) { return t.getBoundingClientRect().right > a.getBoundingClientRect().right ? t : a; });
+    if (!k) {
+      var voorbeeld = tabs.filter(function (t) { return !geselecteerd(t); })[0] || laatste;
+      k = maakKnop(voorbeeld);
+      k.style.position = 'fixed';
+      k.style.margin = '0';
+      k.style.zIndex = '1000';   // boven DireXtion, onder het logboek (999999)
+      document.body.appendChild(k);
     }
-    return null;
+    var r = laatste.getBoundingClientRect();
+    var gat = parseFloat(getComputedStyle(laatste).marginRight) || 2;
+    k.style.left = Math.round(r.right + gat) + 'px';
+    k.style.top = Math.round(r.top) + 'px';
+    k.style.height = Math.round(r.height) + 'px';
   }
+  window.addEventListener('resize', zorgVoorKnop);
 
-  var huidig = null;
-  function plaats() {
-    if (!huidig || !huidig.isConnected) return;
-    var p = orderlijstPaneel();
-    if (!p) return;   // niet gevonden: het logboek blijft linksonder, zoals altijd
-    var r = p.getBoundingClientRect();
-    var hoogte = huidig.offsetHeight || 620;
-    var top = Math.max(MARGE, r.top + MARGE);
-    if (top + hoogte > window.innerHeight - MARGE) top = Math.max(MARGE, window.innerHeight - MARGE - hoogte);
-    huidig.style.top = top + 'px';
-    huidig.style.bottom = 'auto';
-    huidig.style.left = (r.left + MARGE) + 'px';
-    huidig.style.right = 'auto';
-  }
-  window.DS_LOGBOEK_PLEK = function (wrapper) {
-    huidig = wrapper;
+  // ── Plek van het logboek ──────────────────────────────────────
+  // Linksonder, waar ds-logboek.js hem zelf zet: daar zit hij op Basic het
+  // minst in de weg (v1.1.2; v1.0.0–v1.1.1 legden hem bovenaan over de
+  // orderlijst). De hook wordt alleen nog gebruikt om te onthouden voor welke
+  // order het logboek geopend is.
+  window.DS_LOGBOEK_PLEK = function () {
     // Ook als het logboek met de bookmarklet of de launcher gestart is.
     openOrder = huidigeOrder();
     genegeerd = '';
-    if (window.ResizeObserver) new ResizeObserver(plaats).observe(wrapper);
-    plaats();
   };
-  window.addEventListener('resize', plaats);
 
   // ── Orderwissel ───────────────────────────────────────────────
   var openOrder = '';
