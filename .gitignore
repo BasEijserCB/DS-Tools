@@ -46,6 +46,10 @@
 !/ev/ev-ritten.js
 !/ev/ev-ritten.user.js
 
+!/plakken/
+/plakken/*
+!/plakken/ds-plakken.user.js
+
 !/extern/
 /extern/*
 !/extern/*.js
