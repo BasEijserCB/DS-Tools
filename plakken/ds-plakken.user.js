@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Plakken in de Order wizard
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.1
+// @version      1.2.2
 // @description  Zet in de Order wizard (service-order) een knop "Plakken uit DS Logboek" onder Order sjabloon.
 // @match        https://coolblue.dirextion.nl/Import/*
 // @grant        none
@@ -72,6 +72,8 @@
     var kleur = { ok: '#155724', fout: '#E50000', bezig: '#999999' }[soort] || '#333333';
     el.style.color = kleur;
     el.textContent = tekst;
+    // Leeg = weg: anders maakt een lege regel de rij hoger en zakt het label.
+    el.style.display = tekst ? 'block' : 'none';
   }
 
   function plakken(knop, status) {
@@ -154,7 +156,7 @@
     // zodat labelbreedte, uitlijning en marges van DireXtion zelf komen.
     var knopEl = document.createElement('div');
     var status = document.createElement('div');
-    status.style.cssText = 'font-size:12px;margin-top:6px;line-height:1.4;';
+    status.style.cssText = 'display:none;font-size:12px;margin-top:6px;line-height:1.4;';
 
     var sjabloon = popup.querySelector('input[id$="_orderTemplateId"]');
     var voorbeeldRij = sjabloon && sjabloon.closest('.dx-field-item');
@@ -163,6 +165,9 @@
     var veld = rij && rij.querySelector('.dx-field-item-content');
     if (rij && labelTekst && veld) {
       // Geen dubbele ids: paste-bookmarklet.js zoekt velden op het eind van hun id.
+      // De gekloonde regel is de tweede van Opties; als eerste (en enige) regel
+      // van ons blok hoort hij de bovenmarge van een eerste regel te krijgen.
+      rij.classList.add('dx-first-row');
       rij.querySelectorAll('[id]').forEach(function (e) { e.removeAttribute('id'); });
       rij.querySelectorAll('[for]').forEach(function (e) { e.removeAttribute('for'); });
       rij.querySelectorAll('.dx-field-item-required-mark').forEach(function (e) { e.remove(); });
@@ -171,7 +176,8 @@
       // Eigen omhulsel: de veldcel van DireXtion is een flexrij, en dan kwam de
       // melding naast de knop te staan in plaats van eronder.
       var stapel = document.createElement('div');
-      stapel.style.cssText = 'display:block;width:100%;';
+      // Links uitlijnen: de knop begint waar het invoerveld van Order sjabloon begint.
+      stapel.style.cssText = 'display:block;width:100%;text-align:left;';
       stapel.appendChild(knopEl);
       stapel.appendChild(status);
       veld.appendChild(stapel);
