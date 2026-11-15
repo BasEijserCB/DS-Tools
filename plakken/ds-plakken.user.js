@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Plakken in de Order wizard
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.0.0
+// @version      1.1.0
 // @description  Zet in de Order wizard (service-order) een knop "Plakken uit DS Logboek" onder Order sjabloon.
 // @match        https://coolblue.dirextion.nl/Import/*
 // @grant        none
@@ -134,28 +134,44 @@
 
     var inhoud = document.createElement('div');
     if (inhoudVoorbeeld) inhoud.className = inhoudVoorbeeld.className;
-    inhoud.style.paddingTop = '12px';
     blok.appendChild(inhoud);
 
-    var uitleg = document.createElement('div');
-    uitleg.textContent = 'Vult sjabloon, verlader, ontvanger, artikelen en service in vanuit het klembord van DS Logboek.';
-    uitleg.style.cssText = 'font-size:13px;color:#999999;margin-bottom:10px;line-height:1.4;';
-    inhoud.appendChild(uitleg);
-
+    // Eén formulierregel "Klembord: [knop]", gekloond van de regel "Order sjabloon"
+    // zodat labelbreedte, uitlijning en marges van DireXtion zelf komen.
     var knopEl = document.createElement('div');
-    inhoud.appendChild(knopEl);
-
     var status = document.createElement('div');
-    status.style.cssText = 'font-size:13px;margin-top:10px;line-height:1.4;min-height:18px;';
-    inhoud.appendChild(status);
+    status.style.cssText = 'font-size:12px;margin-top:6px;line-height:1.4;';
+
+    var sjabloon = popup.querySelector('input[id$="_orderTemplateId"]');
+    var voorbeeldRij = sjabloon && sjabloon.closest('.dx-field-item');
+    var rij = voorbeeldRij && voorbeeldRij.cloneNode(true);
+    var labelTekst = rij && rij.querySelector('.dx-field-item-label-text');
+    var veld = rij && rij.querySelector('.dx-field-item-content');
+    if (rij && labelTekst && veld) {
+      // Geen dubbele ids: paste-bookmarklet.js zoekt velden op het eind van hun id.
+      rij.querySelectorAll('[id]').forEach(function (e) { e.removeAttribute('id'); });
+      rij.querySelectorAll('[for]').forEach(function (e) { e.removeAttribute('for'); });
+      rij.querySelectorAll('.dx-field-item-required-mark').forEach(function (e) { e.remove(); });
+      labelTekst.textContent = 'Klembord:';
+      veld.innerHTML = '';
+      veld.appendChild(knopEl);
+      veld.appendChild(status);
+      inhoud.appendChild(rij);
+    } else {
+      // Terugval als de opbouw anders is dan verwacht.
+      inhoud.style.paddingTop = '12px';
+      inhoud.appendChild(knopEl);
+      inhoud.appendChild(status);
+    }
 
     groep.parentNode.insertBefore(blok, groep.nextSibling);
 
+    // Zelfde knop als "Volgende" en "Opslaan": wit, grijze rand, geen icoon.
     var knop = $(knopEl).dxButton({
       text: 'Plakken uit DS Logboek',
-      icon: 'paste',
-      type: 'default',
-      stylingMode: 'contained',
+      type: 'normal',
+      stylingMode: 'outlined',
+      hint: 'Vult sjabloon, verlader, ontvanger, artikelen en service in vanuit het klembord van DS Logboek',
       onClick: function () { plakken(knop, status); }
     }).dxButton('instance');
   }
