@@ -105,13 +105,17 @@
 
   // ── Inhoud per tool. id = het id uit TOOLS in launcher/launcher.js ──────────
   // stappen: genummerd · tekens: [voorbeeld-HTML, betekenis] · letop: max. 3 regels
+  // Een item dat naar een andere tool verwijst: { als: '<tool-id>', v: item, anders: item (optioneel) }.
+  // Het verschijnt alleen als die tool op deze pagina staat (dus productie, of ?dev).
   var H = {
     'ds-logboek': {
       doel: 'Registreer elk telefoontje en zet een vervolgstop direct klaar voor DireXtion.',
       stappen: [
         'Open de order in de consumer portal of in DireXtion Basic en start <b>DS Logboek</b>. Klant, rit en product worden zelf uitgelezen.',
         'Beantwoord de vragen: wie belt, waar speelt het, wat moet er gebeuren, en hoe loopt het af.',
-        'Same day of next day? Klik eventueel <b>Adres klaarzetten voor reistijd-check</b> (zie Extra rijtijd) en vul de rit in.',
+        { als: 'extra-rijtijd',
+          v: 'Same day of next day? Klik eventueel <b>Adres klaarzetten voor reistijd-check</b> (zie Extra rijtijd) en vul de rit in.',
+          anders: 'Same day of next day? Vul de rit in.' },
         'Sluit af met <span class="k blauw">✓ Loggen</span>, <span class="k blauw">📋 Klembord</span> of <span class="k blauw">Loggen + Klembord</span>.',
         'Stop gepland? Open het Import-formulier en start <b>DS Plakken</b>.'
       ],
@@ -119,7 +123,7 @@
         ['<span class="k">Geen order ◯</span>', 'Schakelaar onderin: gesprek zonder order. Wist alle ordergegevens.'],
         ['<span class="k">✎</span>', 'Naast je naam: naam wijzigen.'],
         ['<span class="k">Wasmachine</span>', 'Productchip klikbaar: product verkeerd herkend? Kies opnieuw.'],
-        ['<span class="k">↓ Rijtijd</span>', 'In het routeveld: haalt de rit op die je in Extra rijtijd koos.'],
+        { als: 'extra-rijtijd', v: ['<span class="k">↓ Rijtijd</span>', 'In het routeveld: haalt de rit op die je in Extra rijtijd koos.'] },
         ['<span class="p r">⚠ Fornuis / Kookplaat</span>', 'DS plant hier geen stop. Alleen loggen.'],
         ['<span class="toast" style="background:#285dab">↻</span>', 'Nieuwe versie gedownload.']
       ],
@@ -296,8 +300,17 @@
   // #id of #id1,id2: de tools van de pagina waar de balk geopend werd.
   var hier = decodeURIComponent(location.hash.slice(1)).split(',').filter(Boolean);
 
+  var getoond = {};
+  // Verwijzingen naar een tool die hier niet staat (test) vallen weg, of krijgen hun 'anders'-tekst.
+  function alleenGetoond(lijst) {
+    return (lijst || []).map(function (x) {
+      return x && !Array.isArray(x) && typeof x === 'object' && x.als ? (getoond[x.als] ? x.v : x.anders) : x;
+    }).filter(function (x) { return x != null; });
+  }
+
   function kaart(t) {
-    var h = H[t.id] || { doel: t.uitleg, stappen: [], tekens: [] };
+    var h0 = H[t.id] || { doel: t.uitleg, stappen: [], tekens: [] };
+    var h = { doel: h0.doel, stappen: alleenGetoond(h0.stappen), tekens: alleenGetoond(h0.tekens), letop: alleenGetoond(h0.letop) };
     var stappen = h.stappen.length ? '<div><div class="lbl">Zo werk je</div><ol class="st">' +
       h.stappen.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol></div>' : '';
     var tekens = h.tekens && h.tekens.length ? '<div><div class="lbl">Wat je ziet</div><div class="lg">' +
@@ -312,6 +325,8 @@
   }
 
   function teken(tools) {
+    getoond = {};
+    tools.forEach(function (t) { getoond[t.id] = true; });
     var eerst = tools.filter(function (t) { return hier.indexOf(t.id) >= 0; });
     var rest = tools.filter(function (t) { return hier.indexOf(t.id) < 0; });
     document.getElementById('nav').innerHTML = tools.map(function (t) {
