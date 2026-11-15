@@ -8,6 +8,7 @@ Browsergebaseerde widget voor het Coolblue Delivery Support team. Draait bovenop
 
 | Bestand | Rol |
 |---|---|
+| `README.md` | **Index van de repo**: welke tool waar woont, kopieën in `extern/` met hun origineel, GAS-backends en gekoppelde mappen op de Mac. Bijwerken bij elke nieuwe tool of verhuizing. |
 | `ds-logboek.js` | Volledige widget: UI, gespreksflow, DOM-scraping, clipboard output. Gehost op GitHub, geladen via raw URL met cache-busting. |
 | `loader-bookmarklet.js` | Leesbare broncode van de loader bookmarklet. Haalt `ds-logboek.js` op, cached in localStorage (`ds_app_prod_cache`), stale-while-revalidate met `{cache:'no-store'}` om CDN-cache te omzeilen. |
 | `paste-bookmarklet.js` | Volledige paste logica. Bevat `PASTE_VERSION` constante. Gehost op GitHub, geladen via raw URL door de paste loader. |
