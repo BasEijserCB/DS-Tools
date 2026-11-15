@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.1.2
+// @version      1.1.3
 // @description  Knop "📋 DS Logboek" rechts van de tabs linksboven; het logboek waarschuwt bij het wisselen van order.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @grant        none
@@ -91,18 +91,52 @@
   }
 
   // ── Knop ──────────────────────────────────────────────────────
+  // Ruimte in een echte tab meten in plaats van de padding te kopiëren: die
+  // zit bij DireXtion op een element binnen de tab (v1.1.2 was te krap).
+  // links = rand → icoon, gat = icoon → tekst, rechts = tekst → rand.
+  function maatVan(tab) {
+    var m = { links: 14, gat: 8, rechts: 14, icoon: 18 };
+    try {
+      var rt = tab.getBoundingClientRect();
+      var ic = tab.querySelector('svg, img, i, [class*="icon"]');
+      var tekst = null, walker = document.createTreeWalker(tab, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) { if (walker.currentNode.textContent.trim()) { tekst = walker.currentNode; break; } }
+      if (!tekst) return m;
+      var range = document.createRange(); range.selectNodeContents(tekst);
+      var rx = range.getBoundingClientRect();
+      if (rx.width === 0) return m;
+      m.rechts = Math.round(rt.right - rx.right);
+      if (ic && ic.getBoundingClientRect().width > 0) {
+        var ri = ic.getBoundingClientRect();
+        m.links = Math.round(ri.left - rt.left);
+        m.gat = Math.round(rx.left - ri.right);
+        m.icoon = Math.round(ri.height * 0.85);   // emoji oogt groter dan een lijnicoon van dezelfde hoogte
+      } else {
+        m.links = Math.round(rx.left - rt.left);
+      }
+      ['links', 'gat', 'rechts'].forEach(function (k) { if (!(m[k] >= 4 && m[k] <= 40)) m[k] = k === 'gat' ? 8 : 14; });
+      if (!(m.icoon >= 12 && m.icoon <= 28)) m.icoon = 18;
+    } catch (e) {}
+    return m;
+  }
+
   function maakKnop(tab) {
     var cs = getComputedStyle(tab);
     var k = document.createElement('div');
     k.id = KNOP_ID;
-    k.textContent = '📋 DS Logboek';
     k.title = 'DS Logboek openen voor deze order';
+    var maat = maatVan(tab);
+    var icoon = document.createElement('span');
+    icoon.textContent = '📋';
+    icoon.style.cssText = 'font-size:' + maat.icoon + 'px;line-height:1;margin-right:' + maat.gat + 'px;';
+    k.appendChild(icoon);
+    k.appendChild(document.createTextNode('DS Logboek'));
     var st = k.style;
     st.display = 'inline-flex';
     st.alignItems = 'center';
     st.boxSizing = 'border-box';
     st.height = tab.getBoundingClientRect().height + 'px';
-    st.padding = cs.padding;
+    st.padding = '0 ' + maat.rechts + 'px 0 ' + maat.links + 'px';
     st.margin = cs.margin;
     st.font = cs.font;
     st.color = cs.color;
