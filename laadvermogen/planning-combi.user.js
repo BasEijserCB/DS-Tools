@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — Planning-combi (automatisch)
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.1.0
+// @version      1.2.0
 // @description  Zet in de planningsmodule vanzelf de vaste instellingen en het echte laadvermogen uit Fleetio.
 // @match        https://coolblue.dirextion.nl/ModulePlanningBeta*
 // @grant        none
@@ -17,9 +17,15 @@
    veranderen. Een nieuwe versie geldt vanaf de volgende keer dat de
    planningsmodule opent — geen toast, het draait toch al.
 
-   Verschil met een klik: dit start tijdens het laden van de pagina. Daarom
-   eerst wachten op window.TourGrid (anders meldt laadvermogen.js met een
-   alert dat hij alleen in de planningsmodule werkt), en dan meteen draaien.
+   Verschil met een klik: dit start tijdens het laden van de pagina. De twee
+   delen starten daarom elk op hun eigen moment (v1.2.0; daarvoor wachtten
+   ze samen op de grid):
+   - planning-instellingen.js meteen, zodra de knoppen en velden er zijn.
+     Die staan al in de pagina vóór er een depot gekozen is.
+   - laadvermogen.js pas als window.TourGrid bestaat — en die bestaat pas
+     als er een depot gekozen is. Zonder grid meldt laadvermogen.js met een
+     alert dat hij alleen in de planningsmodule werkt. Hier wordt zonder
+     tijdslimiet op gewacht: een depot kiezen kan minuten later zijn.
 
    Het planningssjabloon (GetTemplates) zet werkperiode en pauze asynchroon
    en kan de 3 uur / 20 min dus ná ons weer overschrijven. In plaats van
@@ -41,9 +47,10 @@
     { naam: 'Planning-instellingen', cache: 'ds_planning_combi_inst_cache', src: 'planning-instellingen.js' },
     { naam: 'Laadvermogen', cache: 'ds_planning_combi_lv_cache', src: 'laadvermogen.js' }
   ];
-  var WACHT_GRID_MS = 60000;
+  var WACHT_VELDEN_MS = 10000;   // daarna instellingen toch draaien; ontbrekende velden slaat hij zelf over
   var SJABLOON_VENSTER_MS = 20000;
   var POLL_MS = 150;
+  var POLL_GRID_MS = 300;
 
   function log(m) { console.log('[Planning-combi userscript] ' + m); }
 
@@ -89,13 +96,25 @@
   }
 
   var begin = Date.now();
-  (function wacht() {
-    if (!(window.ko && window.TourGrid && document.getElementById('FilterChannel_VI'))) {
-      if (Date.now() - begin > WACHT_GRID_MS) { log('geen Rit overzicht gevonden binnen ' + WACHT_GRID_MS / 1000 + ' s — niets gedaan'); return; }
-      setTimeout(wacht, POLL_MS); return;
-    }
-    BESTANDEN.forEach(laad);
+  function sinds() { return ((Date.now() - begin) / 1000).toFixed(1) + ' s'; }
+
+  // Instellingen: zodra Knockout de knoppen gebonden heeft.
+  function veldenKlaar() {
+    if (!window.ko || !document.getElementById('FilterChannel_VI')) return false;
+    var el = document.querySelector('[data-bind*="toggleAutoReload"]');
+    try { return !!(el && window.ko.contextFor(el)); } catch (e) { return false; }
+  }
+  (function wachtVelden() {
+    if (!veldenKlaar() && Date.now() - begin < WACHT_VELDEN_MS) { setTimeout(wachtVelden, POLL_MS); return; }
+    laad(BESTANDEN[0]);
     kijkNaarSjabloon();
-    log('toegepast na ' + ((Date.now() - begin) / 1000).toFixed(1) + ' s');
+    log('instellingen toegepast na ' + sinds());
+  })();
+
+  // Laadvermogen: pas als er een Rit overzicht is, dus na het kiezen van een depot.
+  (function wachtGrid() {
+    if (!(window.ko && window.TourGrid)) { setTimeout(wachtGrid, POLL_GRID_MS); return; }
+    laad(BESTANDEN[1]);
+    log('laadvermogen toegepast na ' + sinds());
   })();
 })();
