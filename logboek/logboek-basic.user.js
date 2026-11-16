@@ -1,9 +1,11 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.1.4
+// @version      1.1.5
 // @description  Knop "📋 DS Logboek" rechts van de tabs linksboven; het logboek waarschuwt bij het wisselen van order.
 // @match        https://coolblue.dirextion.nl/Basic/*
+// @match        https://coolblue.dirextion.nl/basic/*
+// @match        https://coolblue.dirextion.nl/BASIC/*
 // @grant        none
 // @run-at       document-idle
 // @downloadURL  https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/logboek/logboek-basic.user.js
