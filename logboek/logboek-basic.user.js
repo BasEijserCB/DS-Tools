@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.5
+// @version      1.2.6
 // @description  Knop DS Logboek onder het vergrootglas; het logboek schuift uit vanaf de linkerrand, zoals het filterpaneel.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
@@ -38,7 +38,7 @@
   var KNOP_ID = 'ds-logboek-tabknop';
   var BALK_ID = 'ds-logboek-wisselbalk';
   var ORANJE = '#e67e22';
-  var VERSIE = '1.2.5';
+  var VERSIE = '1.2.6';
 
   // Diagnose (v1.1.8): in de console (F12, filter "DS Logboek userscript") is te
   // zien óf het script draait en waarom de knop er (niet) staat. Alleen bij een
@@ -130,8 +130,18 @@
   // de labels wel in textContent staan maar niet in innerText.
   function zichtbareTekst(e) { return (e.innerText || '').trim().length; }
 
+  // De tab Orders (of Problemen / Rit overzicht) onthouden: lijstTab() loopt de
+  // hele pagina door, en tijdens het wachten op het vergrootglas (hieronder)
+  // wordt dit vaak gevraagd.
+  var anker = null;
+  function ankerTab() {
+    if (anker && anker.isConnected && anker.getBoundingClientRect().width > 0) return anker;
+    anker = lijstTab('Orders') || lijstTab('Problemen') || lijstTab('Rit overzicht');
+    return anker;
+  }
+
   function loepPunten() {
-    var tab = lijstTab('Orders') || lijstTab('Problemen') || lijstTab('Rit overzicht');
+    var tab = ankerTab();
     if (!tab) return [];
     var rt = tab.getBoundingClientRect(), p = [];
     [rt.top + rt.height / 2, rt.top + 6, rt.bottom - 6].forEach(function (y) {
@@ -359,6 +369,7 @@
     // Zichtbaar bij een open order, of als er een (weggeschoven) logboek is.
     if (!w && !orderTab()) {
       toestand('geen knop: geen open order gevonden (visit-tabje met cijfers rechtsboven)');
+      stopWachten();
       if (k) k.remove();
       return;
     }
@@ -369,6 +380,7 @@
     if (!loep) {
       toestand('geen knop: vergrootglas linksboven niet gevonden (of het filterpaneel staat open)');
       if (k) k.style.display = 'none';
+      wachtOpLoep();
       return;
     }
     if (!k) { k = maakKnop(loep); document.body.appendChild(k); }
@@ -376,6 +388,19 @@
     plaatsKnop(k);
     toestand('knop staat er (order ' + huidigeOrder() + ')');
   }
+
+  // Filterpaneel dicht = vaak alleen een stijlwijziging, geen nieuwe elementen,
+  // dus de MutationObserver ziet het niet. Zolang het vergrootglas weg is (en er
+  // een order open staat) elke 400 ms kijken of het terug is (v1.2.6). Goedkoop:
+  // een handvol elementFromPoint-aanroepen rond de onthouden tab.
+  var loepPoll = null;
+  function wachtOpLoep() {
+    if (loepPoll) return;
+    loepPoll = setInterval(function () {
+      if (vindLoep()) { stopWachten(); zorgVoorKnop(); }
+    }, 400);
+  }
+  function stopWachten() { if (loepPoll) { clearInterval(loepPoll); loepPoll = null; } }
 
   // ── Plek van het logboek ──────────────────────────────────────
   // Tegen de linkerrand, met de bovenkant gelijk aan onze knop (het vergrootglas
