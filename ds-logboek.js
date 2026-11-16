@@ -433,8 +433,11 @@
   // Alleen transform, dus de plek zelf (left/bottom) blijft van de starter.
   var SCHUIF_MS = 260;
   function schuifAfstand() { return -(wrapper.getBoundingClientRect().right + 12) + 'px'; }
+  // Ook zonder thema als een starter daarom vraagt (window.DS_LOGBOEK_SCHUIVEN,
+  // v1.47.0): logboek-basic.user.js laat het paneel uitschuiven zoals het
+  // filterpaneel van DireXtion.
   function magSchuiven() {
-    if (!dxThema || !wrapper.animate) return false;
+    if (!(dxThema || window.DS_LOGBOEK_SCHUIVEN === true) || !wrapper.animate) return false;
     try { return !window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return true; }
   }
   if (magSchuiven()) {
@@ -1411,7 +1414,7 @@
             '<span style="font-size:11px;color:'+(geenOrderMode?'#ff6600':'#999999')+';">'+(geenOrderMode?'Gegevens gewist':'Geen order')+'</span>' +
           '</div>' : '') +
         '</div></div>' +
-        '<div class="version-bar">DS Logboek v1.46.0' +
+        '<div class="version-bar">DS Logboek v1.47.0' +
           (callData.user ? ' · <span style="color:#999999;">'+callData.user+'</span> ' + (nameEditConfirm ? '<span style="color:#999999;margin-left:4px;">Naam wissen?</span> <span id="btn-edit-name-yes" style="cursor:pointer;color:#E50000;font-weight:600;margin-left:4px;">Ja</span> <span id="btn-edit-name-no" style="cursor:pointer;color:#999999;margin-left:4px;">Nee</span>' : '<span id="btn-edit-name" title="Naam wijzigen" style="cursor:pointer;opacity:0.45;margin-left:1px;">✎</span>') : '') +
         '</div>' +
       '</div>';
