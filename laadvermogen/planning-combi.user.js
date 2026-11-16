@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — Planning-combi (automatisch)
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.3.0
+// @version      1.4.0
 // @description  Zet in de planningsmodule vanzelf de vaste instellingen en het echte laadvermogen uit Fleetio.
 // @match        https://coolblue.dirextion.nl/ModulePlanningBeta*
 // @grant        none
@@ -34,6 +34,20 @@
    dan 3, dan draait planning-instellingen.js één keer opnieuw. Daarna
    niet meer, zodat een handmatige wijziging blijft staan.
 
+   Vinkjes "Op map tonen?" (v1.4.0). planning-instellingen.js is
+   ongewijzigd de code van de bookmarklet en werkt — op een pagina die klaar
+   is. Bij het laden is dat niet zo: DireXtion hangt zijn afhandeling nog niet
+   aan het vinkje bij Ongeplande visits (vinkje stond er, de kaart deed
+   niets) en het vinkje bij Rit overzicht bestaat nog niet. Het moment regelen
+   we hier, niet in planning-instellingen.js:
+   - Een run vóórdat het Rit overzicht rijen heeft (bij laden, of de
+     sjabloon-herhaling) zet de vinkjes die hij aanzette meteen terug. Anders
+     slaat een latere run ze over ("staat al aan") en blijft het kapot.
+   - Zodra het Rit overzicht rijen heeft (depot gekozen) draait
+     planning-instellingen.js nog één keer, als een klik op de bookmarklet op
+     een klare pagina. Dat zet ook werkperiode en pauze opnieuw op 3 u / 20
+     min, precies zoals die klik zou doen.
+
    @grant none: draait in de pagina zelf, want beide bestanden hebben ko,
    ASPx en TourGrid van de pagina nodig.
 
@@ -59,20 +73,40 @@
     catch (e) { console.error('[Planning-combi userscript] ' + naam + ' gaf een fout:', e); return false; }
   }
 
+  // ── Moment voor de vinkjes (v1.4.0) ──
+  var VINKJES = ['showTourOnMap', 'showVisitOnMap'];
+  function ritRijen() { return !!document.querySelector('[id^="TourGrid"] tr.dxgvDataRow'); }   // alleen het Rit overzicht, niet Ongeplande visits
+
+  // planning-instellingen.js draaien; is de pagina nog niet klaar, dan de
+  // vinkjes die hij aanzette direct terugzetten (zonder event: DireXtion
+  // luisterde nog niet, dus er valt niets terug te draaien).
+  function draaiInstellingen(code) {
+    var klaar = ritRijen();
+    var voor = {};
+    if (!klaar) VINKJES.forEach(function (id) { var el = document.getElementById(id); if (el) voor[id] = el.checked; });
+    var ok = draai(BESTANDEN[0].naam, code);
+    if (!klaar) VINKJES.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && voor[id] === false && el.checked) el.checked = false;
+    });
+    return ok;
+  }
+
   // Zelfde stale-while-revalidate als de loader: gecachete versie direct,
   // verse versie in de achtergrond. Zonder (werkende) cache draait de verse
   // code zodra hij binnen is.
   function laad(b) {
     var cached = null;
     try { cached = localStorage.getItem(b.cache); } catch (e) {}
-    var gelukt = cached ? draai(b.naam, cached) : false;
+    var run = b === BESTANDEN[0] ? draaiInstellingen : function (code) { return draai(b.naam, code); };
+    var gelukt = cached ? run(cached) : false;
     fetch(BASE + b.src + '?t=' + Date.now(), { cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
       .then(function (code) {
         if (!code || code === cached) return;
         try { localStorage.setItem(b.cache, code); }
         catch (e) { try { localStorage.removeItem(b.cache); localStorage.setItem(b.cache, code); } catch (e2) {} }
-        if (!gelukt) draai(b.naam, code);
+        if (!gelukt) run(code);
         else log(b.naam + ': nieuwe versie opgeslagen, actief vanaf de volgende keer');
       })
       .catch(function (e) { console.error('[Planning-combi userscript] ' + b.naam + ' ophalen mislukt:', e); });
@@ -90,7 +124,7 @@
       sub.dispose();
       var code = null;
       try { code = localStorage.getItem(BESTANDEN[0].cache); } catch (e) {}
-      if (code) { draai(BESTANDEN[0].naam, code); log('sjabloon overschreef de werkperiode (' + v + ' u) — instellingen opnieuw gezet'); }
+      if (code) { draaiInstellingen(code); log('sjabloon overschreef de werkperiode (' + v + ' u) — instellingen opnieuw gezet'); }
     });
     setTimeout(function () { try { sub.dispose(); } catch (e) {} }, SJABLOON_VENSTER_MS);
   }
@@ -112,6 +146,20 @@
     laad(BESTANDEN[0]);
     kijkNaarSjabloon();
     log('instellingen toegepast na ' + sinds());
+  })();
+
+  // Instellingen nog één keer zodra het Rit overzicht rijen heeft: dan is de
+  // pagina net zo klaar als bij een klik op de bookmarklet, en bestaan beide
+  // vinkjes. Geen tijdslimiet: een depot kiezen kan minuten later zijn.
+  (function wachtRijen() {
+    if (!ritRijen()) { setTimeout(wachtRijen, POLL_GRID_MS); return; }
+    setTimeout(function () {   // even laten bijkomen na het tekenen van de grid
+      var code = null;
+      try { code = localStorage.getItem(BESTANDEN[0].cache); } catch (e) {}
+      if (!code) { log('instellingen nog niet geladen — vinkjes niet gezet'); return; }
+      draaiInstellingen(code);
+      log('instellingen opnieuw toegepast nu het Rit overzicht gevuld is (' + sinds() + ')');
+    }, 500);
   })();
 
   // Laadvermogen: pas als er een Rit overzicht is, dus na het kiezen van een depot.
