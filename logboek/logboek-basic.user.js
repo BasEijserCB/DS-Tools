@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.3
+// @version      1.2.4
 // @description  Knop DS Logboek onder het vergrootglas; het logboek schuift uit vanaf de linkerrand, zoals het filterpaneel.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
@@ -38,7 +38,7 @@
   var KNOP_ID = 'ds-logboek-tabknop';
   var BALK_ID = 'ds-logboek-wisselbalk';
   var ORANJE = '#e67e22';
-  var VERSIE = '1.2.3';
+  var VERSIE = '1.2.4';
 
   // Diagnose (v1.1.8): in de console (F12, filter "DS Logboek userscript") is te
   // zien óf het script draait en waarom de knop er (niet) staat. Alleen bij een
@@ -145,16 +145,45 @@
     for (var i = 0; i < punten.length; i++) {
       var el = document.elementFromPoint(punten[i][0], punten[i][1]);
       if (!el || el.closest('#' + KNOP_ID + ', #ds-combi-wrapper')) continue;
-      var box = null;
+      var kandidaten = [];
       for (var e = el; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
         var r = e.getBoundingClientRect();
         if (!(r.left <= 20 && r.width <= 80 && r.height <= 80)) break;
-        if (r.width >= 14 && r.height >= 14 && zichtbareTekst(e) < 15) box = e;
+        if (r.width >= 14 && r.height >= 14 && zichtbareTekst(e) < 15) kandidaten.push(e);
       }
-      if (box) return box;
+      // Het element dat getekend wordt (rand of achtergrond), van buiten naar
+      // binnen (v1.2.4). v1.2.0–v1.2.3 namen de buitenste container: zat de rand
+      // op een binnenste laag, dan werd onze knop groter, zonder rand en met
+      // een scheve tussenruimte.
+      for (var v = kandidaten.length - 1; v >= 0; v--) if (heeftVlak(kandidaten[v])) { meldLoep(kandidaten[v]); return kandidaten[v]; }
+      if (kandidaten.length) { meldLoep(kandidaten[kandidaten.length - 1]); return kandidaten[kandidaten.length - 1]; }
     }
     meldLoepOnderzoek(punten);
     return null;
+  }
+
+  function heeftVlak(e) {
+    var cs = getComputedStyle(e);
+    var rand = ['Top', 'Right', 'Bottom', 'Left'].some(function (z) {
+      return parseFloat(cs['border' + z + 'Width']) > 0 && cs['border' + z + 'Style'] !== 'none';
+    });
+    var vlak = !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor) || cs.backgroundImage !== 'none';
+    return rand || vlak;
+  }
+
+  // Eén keer per pagina: welk element als vergrootglas geldt, met maat en rand,
+  // zodat afwijkingen in de console na te gaan zijn.
+  var loepGemeld = false;
+  function meldLoep(e) {
+    if (loepGemeld) return;
+    loepGemeld = true;
+    var cs = getComputedStyle(e), r = e.getBoundingClientRect();
+    var k = typeof e.className === 'string' ? e.className.trim() : '';
+    console.info('[DS Logboek userscript] vergrootglas: ' + e.tagName.toLowerCase() + (k ? '.' + k.split(/\s+/).join('.') : '') +
+      ' [' + Math.round(r.left) + ',' + Math.round(r.top) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) + ']' +
+      ' rand ' + cs.borderTopWidth + '/' + cs.borderRightWidth + '/' + cs.borderBottomWidth + '/' + cs.borderLeftWidth + ' ' + cs.borderRightColor +
+      ' · hoek ' + cs.borderRadius + ' · vlak ' + cs.backgroundColor + (cs.backgroundImage !== 'none' ? ' + verloop' : '') +
+      ' · schaduw ' + cs.boxShadow);
   }
 
   // Eén keer per pagina: wat er ligt op de plek waar het vergrootglas hoort,
@@ -182,11 +211,13 @@
   // ── Knop: een tweede knop onder het vergrootglas ──────────────
   // Zelfde maat, rand, achtergrond en icoonkleur als het vergrootglas (computed
   // style, geen klassen: DireXtion's eigen klikafhandeling grijpt er dan niet op
-  // in), met een klembord als lijnicoon. Geen eigen accent meer (v1.2.3): net als
-  // de knoppen in de linkerbalk van de planningsmodule krijgt hij alleen een stip
-  // als er iets aan de hand is — oranje zolang er een weggeschoven logboek wacht.
+  // in), met een klembord als lijnicoon en een licht oranje vlak als eigen accent
+  // (v1.2.4). Net als de knoppen in de linkerbalk van de planningsmodule krijgt
+  // hij een stip als er iets aan de hand is: oranje zolang er een weggeschoven
+  // logboek wacht.
   // Open: hij vormt een tab met het paneel, zonder rand ertussen.
-  var GAT = 6;                    // ruimte tussen vergrootglas en onze knop
+  var GAT = 4;                    // ruimte tussen vergrootglas en onze knop (zoals de linkerbalk van de planningsmodule)
+  var LICHT_ORANJE = '#fdf0e4';
   var IN_MS = 260, UIT_MS = 200;  // zelfde tempo als het inschuiven in ds-logboek.js
   var loep = null;
   var verborgen = false;          // logboek bestaat maar is weggeschoven
@@ -213,7 +244,8 @@
     st.alignItems = 'center';
     st.justifyContent = 'center';
     st.color = getComputedStyle(ic || lp).color || '#333333';
-    st.backgroundColor = /rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor) ? '#fff' : cs.backgroundColor;
+    st.backgroundColor = LICHT_ORANJE;   // eigen accent: licht oranje vlak (v1.2.4)
+    st.boxShadow = cs.boxShadow;
     ['Top', 'Right', 'Bottom', 'Left'].forEach(function (z) {
       st['border' + z] = cs['border' + z + 'Width'] + ' ' + cs['border' + z + 'Style'] + ' ' + cs['border' + z + 'Color'];
     });
@@ -225,9 +257,9 @@
     var stip = document.createElement('span');
     stip.className = 'ds-logboek-stip';
     stip.style.cssText = 'position:absolute;right:3px;bottom:3px;width:8px;height:8px;border-radius:50%;' +
-      'background:' + ORANJE + ';box-shadow:0 0 0 1.5px #fff;display:none;';
+      'background:#c75f0c;box-shadow:0 0 0 1.5px #fff;display:none;';   // donkerder oranje: zichtbaar op het lichte vlak
     k.appendChild(stip);
-    k.addEventListener('mouseenter', function () { k.style.backgroundImage = 'linear-gradient(rgba(0,0,0,0.05),rgba(0,0,0,0.05))'; });
+    k.addEventListener('mouseenter', function () { k.style.backgroundImage = 'linear-gradient(rgba(230,126,34,0.12),rgba(230,126,34,0.12))'; });
     k.addEventListener('mouseleave', function () { k.style.backgroundImage = 'none'; });
     ['pointerdown', 'mousedown', 'mouseup', 'click', 'dxclick'].forEach(function (ev) {
       k.addEventListener(ev, function (e) { e.stopPropagation(); });
@@ -265,7 +297,7 @@
     k.style.borderBottom = vast ? rand : rs.borderBottom;
     k.style.borderLeft = vast ? '0' : rs.borderLeft;
     k.style.borderRadius = vast ? '0' : rs.borderRadius;
-    k.style.backgroundColor = vast ? '#fff' : rs.backgroundColor;
+    k.style.backgroundColor = LICHT_ORANJE;
     k.style.zIndex = vast ? '1000000' : '1000';
     var stip = k.querySelector('.ds-logboek-stip');
     if (stip) stip.style.display = (w && verborgen) ? 'block' : 'none';
