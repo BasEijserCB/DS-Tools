@@ -9,7 +9,8 @@
 
    WAT HET ZET
    - Vinkjes "rit op kaart" en "visit op kaart" (showTourOnMap,
-     showVisitOnMap) aan.
+     showVisitOnMap) aan, met een echte klik, ook als ze pas later
+     verschijnen (v1.2.0).
    - Kanaalfilter op 2mans levering (id 16), via FilterChannel.SetValue
      (v1.1.0). Staat er al een Rit overzicht, dan #quick-refresh; dat
      triggert een callback van TourGrid, en laadvermogen.js hangt aan
@@ -20,7 +21,7 @@
 (function () {
   'use strict';
 
-  var PLANNING_VERSION = '1.1.0';
+  var PLANNING_VERSION = '1.2.0';
 
   if (!/ModulePlanningBeta/i.test(location.href)) return;
 
@@ -31,13 +32,34 @@
     return c ? c[ctx] : null;
   }
 
-  ['showTourOnMap', 'showVisitOnMap'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el && !el.checked) {
-      el.checked = true;
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+  // Vinkjes "Op map tonen?" bij Rit overzicht (showTourOnMap) en bij
+  // Ongeplande visits (showVisitOnMap).
+  // - Echt klikken (v1.2.0). Tot v1.1.0: checked = true + een change-event.
+  //   Knockout werkt zijn model bij op een klik, niet op change: het vinkje
+  //   stond er dan wel, maar de kaart deed niets.
+  // - Wachten tot het vinkje er is. Dat bij Rit overzicht verschijnt pas na het
+  //   kiezen van een depot; automatisch bij het laden (Tampermonkey) was het er
+  //   nog niet. Geen tijdslimiet: een depot kiezen kan minuten later zijn.
+  // - Per vinkje-element één keer. Haalt de gebruiker het daarna weg, dan
+  //   blijft het weg; tekent DireXtion het opnieuw (nieuw element), dan wordt
+  //   het opnieuw aangezet.
+  var VINKJES = ['showTourOnMap', 'showVisitOnMap'];
+  function zetVinkjes() {
+    VINKJES.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el || el.__dsGezet) return;
+      el.__dsGezet = true;
+      if (!el.checked) el.click();
+    });
+  }
+  zetVinkjes();
+  if (window.__planningVinkjes) window.__planningVinkjes.disconnect();
+  var tik = null;
+  window.__planningVinkjes = new MutationObserver(function () {
+    if (tik) return;
+    tik = setTimeout(function () { tik = null; zetVinkjes(); }, 300);
   });
+  window.__planningVinkjes.observe(document.body, { childList: true, subtree: true });
 
   // Kanaal via de API van de DevExpress-combobox (zoals schuifalias.js), niet
   // meer door de verborgen input te beschrijven en ETextChanged af te vuren.
