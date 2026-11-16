@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — Planning-combi (automatisch)
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.4.0
+// @version      1.4.1
 // @description  Zet in de planningsmodule vanzelf de vaste instellingen en het echte laadvermogen uit Fleetio.
 // @match        https://coolblue.dirextion.nl/ModulePlanningBeta*
 // @grant        none
@@ -45,7 +45,9 @@
      slaat een latere run ze over ("staat al aan") en blijft het kapot.
    - Zodra het Rit overzicht rijen heeft (depot gekozen) draait
      planning-instellingen.js nog één keer, als een klik op de bookmarklet op
-     een klare pagina. Dat zet ook werkperiode en pauze opnieuw op 3 u / 20
+     een klare pagina. Daarvoor gaan beide vinkjes eerst netjes uit (v1.4.1),
+     zodat elk vinkje een echte overgang uit → aan krijgt, ongeacht hoe het
+     stond. Dat zet ook werkperiode en pauze opnieuw op 3 u / 20
      min, precies zoals die klik zou doen.
 
    @grant none: draait in de pagina zelf, want beide bestanden hebben ko,
@@ -157,6 +159,18 @@
       var code = null;
       try { code = localStorage.getItem(BESTANDEN[0].cache); } catch (e) {}
       if (!code) { log('instellingen nog niet geladen — vinkjes niet gezet'); return; }
+      // Eerst beide vinkjes netjes UIT (met change-event), zodat
+      // planning-instellingen.js ze daarna echt van uit naar aan zet. Een
+      // vinkje dat al aan stond zonder dat DireXtion het verwerkt had, sloeg
+      // hij anders over ("staat al aan") — zo bleef dat bij Ongeplande visits
+      // in v1.4.0 zichtbaar aan maar werkte het niet (v1.4.1).
+      VINKJES.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && el.checked) {
+          el.checked = false;
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
       draaiInstellingen(code);
       log('instellingen opnieuw toegepast nu het Rit overzicht gevuld is (' + sinds() + ')');
     }, 500);
