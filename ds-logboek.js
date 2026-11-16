@@ -325,8 +325,10 @@
     '.ux-btn{background:#fff;border:1px solid #d6d6d6;border-radius:2px;padding:7px 10px;font-weight:400;color:#333333;margin-bottom:4px;}',
     '.ux-btn:hover{background:#f5f5f5;border-color:#aaaaaa;}',
     '.ux-btn.selected{background:#dce8f8;border-color:#9fb6d6;box-shadow:inset 3px 0 0 #e67e22;color:#333333;font-weight:600;}',
-    '.advies-btn{background:#fff;border-color:#e8c3a3;color:#c0611a;}',
-    '.advies-btn:hover{background:#fdf3ea;border-color:#e67e22;color:#a95416;}',
+    // Anders-knoppen: grijs zoals de rest, alleen een oranje streep links (v1.45.1;
+    // vijf volle oranje knoppen verdrongen het oranje als accent).
+    '.advies-btn{background:#fff;border-color:#d6d6d6;color:#333333;box-shadow:inset 3px 0 0 #e67e22;}',
+    '.advies-btn:hover{background:#f5f5f5;border-color:#aaaaaa;color:#333333;}',
     '.advies-knop{background:#fff;border-color:#b2dfb2;box-shadow:inset 3px 0 0 #b2dfb2;}',
     '.afwijkend-knop{background:#fff;border-color:#e0e0a0;box-shadow:inset 3px 0 0 #e0e0a0;}',
     '.action-btn{background:#fff;border:1px solid #cccccc;border-radius:2px;color:#333333;font-weight:400;font-size:13px;padding:8px;}',
@@ -347,7 +349,7 @@
     '.footer{border-top-color:#e3e3e3;}',
     '.version-bar{background:#f7f7f7;border-top-color:#e3e3e3;}',
     '.pill{border-radius:2px;}',
-    '.sidebar{background:#fafafa;border-left-color:#e3e3e3;}',
+    '.sidebar{background:#fff;border-left-color:#e3e3e3;}',
     '.anders-scroll{border-top-color:#e3e3e3;}',
     '.rit-chip{background:#fff;border-color:#cccccc;color:#333333;border-radius:2px;}',
     '.rit-chip:hover{border-color:#e67e22;color:#e67e22;}'
@@ -1379,7 +1381,7 @@
             '<span style="font-size:11px;color:'+(geenOrderMode?'#ff6600':'#999999')+';">'+(geenOrderMode?'Gegevens gewist':'Geen order')+'</span>' +
           '</div>' : '') +
         '</div></div>' +
-        '<div class="version-bar">DS Logboek v1.45.0' +
+        '<div class="version-bar">DS Logboek v1.45.1' +
           (callData.user ? ' · <span style="color:#999999;">'+callData.user+'</span> ' + (nameEditConfirm ? '<span style="color:#999999;margin-left:4px;">Naam wissen?</span> <span id="btn-edit-name-yes" style="cursor:pointer;color:#E50000;font-weight:600;margin-left:4px;">Ja</span> <span id="btn-edit-name-no" style="cursor:pointer;color:#999999;margin-left:4px;">Nee</span>' : '<span id="btn-edit-name" title="Naam wijzigen" style="cursor:pointer;opacity:0.45;margin-left:1px;">✎</span>') : '') +
         '</div>' +
       '</div>';
