@@ -204,9 +204,14 @@
   // Thema 'dirextion' (v1.45.0, opt-in): zelfde opbouw, maar in de stijl van
   // DireXtion zelf, met DS-oranje als eigen accent. Per origin aan te zetten met
   //   localStorage.setItem('ds_logboek_thema', 'dirextion')
-  // en uit met removeItem. Zie DS_DIREXTION hieronder.
+  // en uit met removeItem (of 'standaard' als een starter dirextion als
+  // standaard meegeeft). Zie DS_DIREXTION hieronder.
+  // Een starter kan een standaard meegeven (window.DS_LOGBOEK_THEMA, v1.48.0):
+  // logboek-basic.user.js zet 'dirextion'. Een eigen keuze in localStorage
+  // wint altijd; 'standaard' daar geeft het oude uiterlijk terug.
   var THEMA = '';
   try { THEMA = localStorage.getItem('ds_logboek_thema') || ''; } catch (e) {}
+  if (!THEMA && typeof window.DS_LOGBOEK_THEMA === 'string') THEMA = window.DS_LOGBOEK_THEMA;
   var dxThema = THEMA === 'dirextion';
   wrapper.style.cssText = 'position:fixed;' + wrapperPos + 'width:360px;background:#fff;z-index:999999;overflow:hidden;' + (dxThema
     ? 'border:1px solid #b9c9df;border-top:3px solid #e67e22;border-radius:3px;box-shadow:0 4px 14px rgba(0,0,0,0.15);'
@@ -1414,7 +1419,7 @@
             '<span style="font-size:11px;color:'+(geenOrderMode?'#ff6600':'#999999')+';">'+(geenOrderMode?'Gegevens gewist':'Geen order')+'</span>' +
           '</div>' : '') +
         '</div></div>' +
-        '<div class="version-bar">DS Logboek v1.47.0' +
+        '<div class="version-bar">DS Logboek v1.48.0' +
           (callData.user ? ' · <span style="color:#999999;">'+callData.user+'</span> ' + (nameEditConfirm ? '<span style="color:#999999;margin-left:4px;">Naam wissen?</span> <span id="btn-edit-name-yes" style="cursor:pointer;color:#E50000;font-weight:600;margin-left:4px;">Ja</span> <span id="btn-edit-name-no" style="cursor:pointer;color:#999999;margin-left:4px;">Nee</span>' : '<span id="btn-edit-name" title="Naam wijzigen" style="cursor:pointer;opacity:0.45;margin-left:1px;">✎</span>') : '') +
         '</div>' +
       '</div>';

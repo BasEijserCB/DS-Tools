@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.1
+// @version      1.2.2
 // @description  Knop DS Logboek onder het vergrootglas; het logboek schuift uit vanaf de linkerrand, zoals het filterpaneel.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
@@ -38,7 +38,7 @@
   var KNOP_ID = 'ds-logboek-tabknop';
   var BALK_ID = 'ds-logboek-wisselbalk';
   var ORANJE = '#e67e22';
-  var VERSIE = '1.2.1';
+  var VERSIE = '1.2.2';
 
   // Diagnose (v1.1.8): in de console (F12, filter "DS Logboek userscript") is te
   // zien óf het script draait en waarom de knop er (niet) staat. Alleen bij een
@@ -323,6 +323,9 @@
   // blijft erboven bereikbaar). Past hij daar niet in de hoogte, dan schuift hij
   // omhoog. ds-logboek.js schuift hem zelf in (DS_LOGBOEK_SCHUIVEN, v1.47.0).
   window.DS_LOGBOEK_SCHUIVEN = true;
+  // Op Basic standaard het DireXtion-uiterlijk (logboek v1.48.0). Een eigen
+  // keuze wint: localStorage ds_logboek_thema = 'standaard' geeft het oude terug.
+  window.DS_LOGBOEK_THEMA = 'dirextion';
 
   function plaatsPaneel(w) {
     if (!loep || !loep.isConnected) loep = vindLoep();
