@@ -214,7 +214,7 @@
   if (!THEMA && typeof window.DS_LOGBOEK_THEMA === 'string') THEMA = window.DS_LOGBOEK_THEMA;
   var dxThema = THEMA === 'dirextion';
   wrapper.style.cssText = 'position:fixed;' + wrapperPos + 'width:360px;background:#fff;z-index:999999;overflow:hidden;' + (dxThema
-    ? 'border:1px solid #b9c9df;border-top:3px solid #e67e22;border-radius:3px;box-shadow:0 4px 14px rgba(0,0,0,0.15);'
+    ? 'border:1px solid #a9bcd8;border-radius:0;box-shadow:2px 2px 10px rgba(0,0,0,0.15);'
     : 'border:2px solid #0090e3;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.18);');
   var iframe = document.createElement('iframe');
   iframe.style.cssText = 'width:100%;height:620px;border:none;background:#fff;display:block;';
@@ -319,7 +319,8 @@
     'html,body{font-size:13px;color:#333333;}',
     '.header{padding:9px 12px;background:#fff;border-bottom:1px solid #e3e3e3;}',
     '.header-title{color:#333333;font-size:14px;font-weight:600;padding-bottom:3px;border-bottom:2px solid #e67e22;}',
-    '.header-title::before{content:"\ud83d\udccb";margin-right:7px;font-size:13px;}',
+    // Lijnicoon zoals de koppen van DireXtion ("Order eigenschappen"), geen emoji (v1.48.1).
+    '.header-title::before{content:"";display:inline-block;width:16px;height:16px;margin-right:8px;vertical-align:-3px;background:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2716%27 height=%2716%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23333333%27 stroke-width=%271.7%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Crect x=%275%27 y=%274.5%27 width=%2714%27 height=%2716.5%27 rx=%272%27/%3E%3Crect x=%278.5%27 y=%272.5%27 width=%277%27 height=%274%27 rx=%271%27/%3E%3Cpath d=%27M8.5 11h7M8.5 14.5h7M8.5 18h4%27/%3E%3C/svg%3E") no-repeat center/16px;}',
     '.toggle-btn{background:#fff;border:1px solid #cccccc;color:#666666;border-radius:2px;}',
     '.toggle-btn:hover{border-color:#e67e22;color:#e67e22;}',
     '.content{padding:12px;}',
@@ -330,9 +331,9 @@
     '.ux-btn{background:#fff;border:1px solid #d6d6d6;border-radius:2px;padding:7px 10px;font-weight:400;color:#333333;margin-bottom:4px;}',
     '.ux-btn:hover{background:#f5f5f5;border-color:#aaaaaa;}',
     '.ux-btn.selected{background:#dce8f8;border-color:#9fb6d6;box-shadow:inset 3px 0 0 #e67e22;color:#333333;font-weight:600;}',
-    // Anders-knoppen: grijs zoals de rest, alleen een oranje streep links (v1.45.1;
-    // vijf volle oranje knoppen verdrongen het oranje als accent).
-    '.advies-btn{background:#fff;border-color:#d6d6d6;color:#333333;box-shadow:inset 3px 0 0 #e67e22;}',
+    // Anders-knoppen: gewoon grijs (v1.48.1). De kop "Anders" scheidt de groep al;
+    // vijf oranje strepen maakten van het accent ruis.
+    '.advies-btn{background:#fff;border-color:#d6d6d6;color:#333333;box-shadow:none;}',
     '.advies-btn:hover{background:#f5f5f5;border-color:#aaaaaa;color:#333333;}',
     '.advies-knop{background:#fff;border-color:#b2dfb2;box-shadow:inset 3px 0 0 #b2dfb2;}',
     '.afwijkend-knop{background:#fff;border-color:#e0e0a0;box-shadow:inset 3px 0 0 #e0e0a0;}',
@@ -357,7 +358,14 @@
     '.sidebar{background:#fff;border-left-color:#e3e3e3;}',
     '.anders-scroll{border-top-color:#e3e3e3;}',
     '.rit-chip{background:#fff;border-color:#cccccc;color:#333333;border-radius:2px;}',
-    '.rit-chip:hover{border-color:#e67e22;color:#e67e22;}'
+    '.rit-chip:hover{border-color:#e67e22;color:#e67e22;}',
+    // "Geen order" als vierkant vinkje zoals in DireXtion (v1.48.1). De schakelaar
+    // heeft inline stijl, vandaar !important; "aan" = inline achtergrond #ff6600.
+    '#geen-order-toggle>div{width:14px !important;height:14px !important;border-radius:2px !important;background:#fff !important;border:1px solid #999999;box-sizing:border-box;}',
+    '#geen-order-toggle>div>div{display:none !important;}',
+    '#geen-order-toggle>div[style*="ff6600"]{background:#e67e22 !important;border-color:#e67e22;}',
+    '#geen-order-toggle>div[style*="ff6600"]::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);}',
+    '#geen-order-toggle>span{color:#333333 !important;}'
   ];
   // Het lettertype van de pagina zelf (DireXtion of de portal), niet een vaste keuze.
   var paginaFont = '';
@@ -1419,7 +1427,7 @@
             '<span style="font-size:11px;color:'+(geenOrderMode?'#ff6600':'#999999')+';">'+(geenOrderMode?'Gegevens gewist':'Geen order')+'</span>' +
           '</div>' : '') +
         '</div></div>' +
-        '<div class="version-bar">DS Logboek v1.48.0' +
+        '<div class="version-bar">DS Logboek v1.48.1' +
           (callData.user ? ' · <span style="color:#999999;">'+callData.user+'</span> ' + (nameEditConfirm ? '<span style="color:#999999;margin-left:4px;">Naam wissen?</span> <span id="btn-edit-name-yes" style="cursor:pointer;color:#E50000;font-weight:600;margin-left:4px;">Ja</span> <span id="btn-edit-name-no" style="cursor:pointer;color:#999999;margin-left:4px;">Nee</span>' : '<span id="btn-edit-name" title="Naam wijzigen" style="cursor:pointer;opacity:0.45;margin-left:1px;">✎</span>') : '') +
         '</div>' +
       '</div>';
