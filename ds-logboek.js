@@ -392,7 +392,7 @@
   function parkeerSessie() {
     var staat = { callData: callData, answeredKeys: answeredKeys, autoFilledKeys: autoFilledKeys, isProductAutoGuessed: isProductAutoGuessed, timestamp: Date.now() };
     localStorage.setItem(PARK_KEY, JSON.stringify(staat));
-    wrapper.remove();
+    sluitPaneel();
   }
 
   function herstelSessie(staat) {
@@ -425,6 +425,36 @@
   };
   try { if (typeof window.DS_LOGBOEK_PLEK === 'function') window.DS_LOGBOEK_PLEK(wrapper, iframe); }
   catch (e) { console.error('[DS Logboek] DS_LOGBOEK_PLEK faalde:', e); }
+
+  // ── Inschuiven vanaf de linkerrand (thema dirextion, v1.46.0) ──
+  // Zoals de eigen panelen van DireXtion: het paneel schuift van buiten de
+  // linkerrand naar zijn plek, en bij sluiten weer terug. Ná DS_LOGBOEK_PLEK,
+  // zodat het ook vanaf de plek komt die een starter koos (portal: linkermarge).
+  // Alleen transform, dus de plek zelf (left/bottom) blijft van de starter.
+  var SCHUIF_MS = 260;
+  function schuifAfstand() { return -(wrapper.getBoundingClientRect().right + 12) + 'px'; }
+  function magSchuiven() {
+    if (!dxThema || !wrapper.animate) return false;
+    try { return !window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return true; }
+  }
+  if (magSchuiven()) {
+    var inschuif = wrapper.animate([{ transform: 'translateX(' + schuifAfstand() + ')' }, { transform: 'translateX(0)' }],
+      { duration: SCHUIF_MS, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
+    // Vangnet: een tabblad dat niet tekent (achtergrond, portal-starter bij
+    // paginalading) laat de animatie op het eerste beeld staan — buiten beeld.
+    setTimeout(function () { try { if (inschuif.playState === 'running') inschuif.finish(); } catch (e) {} }, SCHUIF_MS + 150);
+  }
+  // Elke manier van sluiten (×, loggen, parkeren) loopt hierlangs.
+  function sluitPaneel() {
+    if (!magSchuiven() || !wrapper.isConnected) { wrapper.remove(); return; }
+    wrapper.style.pointerEvents = 'none';
+    var a = wrapper.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(' + schuifAfstand() + ')' }],
+      { duration: 200, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' });
+    a.onfinish = function () { wrapper.remove(); };
+    // Vangnet: tekent het tabblad niet (achtergrond), dan komt onfinish pas later
+    // of niet, en bleef het paneel onzichtbaar 'open' (de Basic-knop knippert dan).
+    setTimeout(function () { wrapper.remove(); }, 400);
+  }
 
   function vindAndereGeparkeerdeSessies() {
     var sessies = [];
@@ -1381,12 +1411,12 @@
             '<span style="font-size:11px;color:'+(geenOrderMode?'#ff6600':'#999999')+';">'+(geenOrderMode?'Gegevens gewist':'Geen order')+'</span>' +
           '</div>' : '') +
         '</div></div>' +
-        '<div class="version-bar">DS Logboek v1.45.1' +
+        '<div class="version-bar">DS Logboek v1.46.0' +
           (callData.user ? ' · <span style="color:#999999;">'+callData.user+'</span> ' + (nameEditConfirm ? '<span style="color:#999999;margin-left:4px;">Naam wissen?</span> <span id="btn-edit-name-yes" style="cursor:pointer;color:#E50000;font-weight:600;margin-left:4px;">Ja</span> <span id="btn-edit-name-no" style="cursor:pointer;color:#999999;margin-left:4px;">Nee</span>' : '<span id="btn-edit-name" title="Naam wijzigen" style="cursor:pointer;opacity:0.45;margin-left:1px;">✎</span>') : '') +
         '</div>' +
       '</div>';
 
-    idoc.getElementById('btn-close').onclick = function(){ wrapper.remove(); };
+    idoc.getElementById('btn-close').onclick = function(){ sluitPaneel(); };
     idoc.getElementById('btn-height').onclick = function() {
       var stappen = [620, 760, 900].filter(function(h){ return h <= maxViewportHeight(); });
       if (stappen.length === 0) stappen = [clampHeight(620)];
@@ -2713,28 +2743,31 @@
   function verstuurEnKopieer() {
     kopieerNaarKlembord();
     verwijderGeparkeerd();
-    wrapper.remove();
+    sluitPaneel();
     fetch('https://script.google.com/a/macros/coolblue.nl/s/AKfycbxb-OwLCFGlDQ48qz3KnGnmsgnVLWxuOjvEr7UG3M3z0WzO0kVsTKGd_8mZjtvHvPHnEg/exec'+bouwLogParams()).catch(function(){});
   }
 
   // ── VERSTUUR: ALLEEN LOGGEN ───────────────────────────────────
   function verstuurAlleen() {
     verwijderGeparkeerd();
-    wrapper.remove();
+    sluitPaneel();
     fetch('https://script.google.com/a/macros/coolblue.nl/s/AKfycbxb-OwLCFGlDQ48qz3KnGnmsgnVLWxuOjvEr7UG3M3z0WzO0kVsTKGd_8mZjtvHvPHnEg/exec'+bouwLogParams()).catch(function(){});
   }
 
-  renderApp();
-  } // einde doScrapeAndInit
-
-  // Herbereken hoogte als venster van grootte verandert (bijv. monitor koppelen/ontkoppelen)
+  // Herbereken hoogte als venster van grootte verandert (bijv. monitor koppelen/ontkoppelen).
+  // Binnen doScrapeAndInit (v1.46.0): daarbuiten bestonden clampHeight, dsHeight
+  // en iframe niet, en gaf elke resize een ReferenceError — de aanpassing werkte nooit.
   window.addEventListener('resize', function() {
+    if (!wrapper.isConnected) return;
     var clamped = clampHeight(dsHeight);
     if (clamped !== dsHeight) {
       dsHeight = clamped;
       iframe.style.height = dsHeight + 'px';
     }
   });
+
+  renderApp();
+  } // einde doScrapeAndInit
 
   // Poll tot ordernummer beschikbaar is in DOM, max 3 seconden
   var pollCount = 0;
