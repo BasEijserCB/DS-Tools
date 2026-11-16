@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Plakken in de Order wizard
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.3
+// @version      1.2.4
 // @description  Zet in de Order wizard (service-order) een knop "Plakken uit DS Logboek" onder Order sjabloon.
 // @match        https://coolblue.dirextion.nl/Import/*
 // @include      /^https:\/\/coolblue\.dirextion\.nl\/import\//i
@@ -32,6 +32,13 @@
   var CACHE = 'ds_paste_prod_cache';
   var MARKER = 'ds-plakken-blok';
   var GELDIG_MS = 5 * 60 * 1000;   // gelijk aan paste-bookmarklet.js
+  var VERSIE = '1.2.4';
+
+  // Diagnose (v1.2.4): in de console (F12) is te zien óf het script draait en
+  // waar het eventueel stopt. Elke reden wordt één keer gemeld.
+  console.info('[DS Plakken userscript] v' + VERSIE + ' actief op ' + location.pathname);
+  var gemeld = {};
+  function meld(reden) { if (gemeld[reden]) return; gemeld[reden] = 1; console.warn('[DS Plakken userscript] ' + reden); }
 
   function kaal(code) { return code && code.indexOf('javascript:') === 0 ? code.slice(11) : code; }
   function leesCache() { try { return localStorage.getItem(CACHE); } catch (e) { return null; } }
@@ -118,12 +125,12 @@
   function injecteer(popup) {
     if (popup.querySelector('.' + MARKER)) return;
     var $ = window.jQuery;
-    if (!$ || !$.fn.dxButton) return;
+    if (!$ || !$.fn.dxButton) { meld('wizard gevonden, maar jQuery/DevExtreme (dxButton) niet bereikbaar vanuit het script'); return; }
 
     // Het blok "Opties" (kop + inhoud) als voorbeeld nemen.
     var kop = leafMetTekst(popup, 'Opties');
     var groep = kop && kop.parentElement;
-    if (!groep) return;
+    if (!groep) { meld('wizard gevonden, maar geen kop "Opties" erin'); return; }
     var inhoudVoorbeeld = Array.prototype.find.call(groep.children, function (c) { return c !== kop; });
 
     var blok = document.createElement(groep.tagName);
@@ -191,6 +198,7 @@
     }
 
     groep.parentNode.insertBefore(blok, groep.nextSibling);
+    console.info('[DS Plakken userscript] blok DS Logboek toegevoegd');
 
     // Zelfde knop als "Volgende" en "Opslaan": wit, grijze rand, geen icoon.
     var knop = $(knopEl).dxButton({
@@ -210,7 +218,11 @@
     for (var i = 0; i < sjablonen.length; i++) {
       // Het hele venster (met titel), niet .dx-popup-content: daar staat de titel buiten.
       var popup = sjablonen[i].closest('.dx-overlay-content') || sjablonen[i].closest('[role="dialog"], .modal');
-      if (popup && popup.offsetParent !== null && /Order wizard/i.test(popup.textContent)) injecteer(popup);
+      // getClientRects i.p.v. offsetParent: die is ook null bij position:fixed.
+      if (!popup) { meld('sjabloonveld gevonden, maar geen venster eromheen'); continue; }
+      if (!popup.getClientRects().length) continue;
+      if (!/Order wizard/i.test(popup.textContent)) { meld('venster met sjabloonveld gevonden, maar zonder de titel "Order wizard"'); continue; }
+      injecteer(popup);
     }
   }
   var timer = null;
