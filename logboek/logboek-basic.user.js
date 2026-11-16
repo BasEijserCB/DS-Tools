@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.0
+// @version      1.2.1
 // @description  Knop DS Logboek onder het vergrootglas; het logboek schuift uit vanaf de linkerrand, zoals het filterpaneel.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
@@ -38,7 +38,7 @@
   var KNOP_ID = 'ds-logboek-tabknop';
   var BALK_ID = 'ds-logboek-wisselbalk';
   var ORANJE = '#e67e22';
-  var VERSIE = '1.2.0';
+  var VERSIE = '1.2.1';
 
   // Diagnose (v1.1.8): in de console (F12, filter "DS Logboek userscript") is te
   // zien óf het script draait en waarom de knop er (niet) staat. Alleen bij een
@@ -125,24 +125,58 @@
     return null;
   }
 
-  function vindLoep() {
+  // Zichtbare tekst telt, verborgen niet (v1.2.1): het vergrootglas kan in
+  // dezelfde container zitten als het dichtgeklapte filterformulier, waarvan
+  // de labels wel in textContent staan maar niet in innerText.
+  function zichtbareTekst(e) { return (e.innerText || '').trim().length; }
+
+  function loepPunten() {
     var tab = lijstTab('Orders') || lijstTab('Problemen') || lijstTab('Rit overzicht');
-    if (!tab) return null;
-    var rt = tab.getBoundingClientRect();
-    var ys = [rt.top + rt.height / 2, rt.top + 8], xs = [6, 12, 18];
-    for (var i = 0; i < ys.length; i++) for (var j = 0; j < xs.length; j++) {
-      var el = document.elementFromPoint(xs[j], ys[i]);
+    if (!tab) return [];
+    var rt = tab.getBoundingClientRect(), p = [];
+    [rt.top + rt.height / 2, rt.top + 6, rt.bottom - 6].forEach(function (y) {
+      [2, 6, 10, 14, 18].forEach(function (x) { p.push([x, y]); });
+    });
+    return p;
+  }
+
+  function vindLoep() {
+    var punten = loepPunten();
+    for (var i = 0; i < punten.length; i++) {
+      var el = document.elementFromPoint(punten[i][0], punten[i][1]);
       if (!el || el.closest('#' + KNOP_ID + ', #ds-combi-wrapper')) continue;
       var box = null;
       for (var e = el; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
         var r = e.getBoundingClientRect();
-        if (r.left <= 20 && r.width <= 80 && r.height <= 80) box = e; else break;
+        if (!(r.left <= 20 && r.width <= 80 && r.height <= 80)) break;
+        if (r.width >= 14 && r.height >= 14 && zichtbareTekst(e) < 15) box = e;
       }
-      if (!box) continue;
-      var rb = box.getBoundingClientRect();
-      if (rb.width >= 16 && rb.height >= 16 && box.textContent.trim().length < 15) return box;
+      if (box) return box;
     }
+    meldLoepOnderzoek(punten);
     return null;
+  }
+
+  // Eén keer per pagina: wat er ligt op de plek waar het vergrootglas hoort,
+  // zodat een plakje uit de console genoeg is om de herkenning bij te stellen.
+  var loepOnderzocht = false;
+  function meldLoepOnderzoek(punten) {
+    if (loepOnderzocht || !punten.length || !orderTab()) return;
+    loepOnderzocht = true;
+    var regels = [];
+    punten.slice(0, 5).forEach(function (pt) {
+      var c = [];
+      for (var n = document.elementFromPoint(pt[0], pt[1]); n && n !== document.documentElement; n = n.parentElement) {
+        var b = n.getBoundingClientRect();
+        var k = typeof n.className === 'string' ? n.className.trim() : (n.className && n.className.baseVal) || '';
+        c.push(n.tagName.toLowerCase() + (n.id ? '#' + n.id : '') + (k ? '.' + k.split(/\s+/).join('.') : '') +
+          ' [' + Math.round(b.left) + ',' + Math.round(b.top) + ' ' + Math.round(b.width) + 'x' + Math.round(b.height) +
+          ' tekst:' + zichtbareTekst(n) + '/' + n.textContent.trim().length + ']');
+        if (c.length >= 7) break;
+      }
+      regels.push('x=' + pt[0] + ' y=' + Math.round(pt[1]) + ': ' + c.join(' < '));
+    });
+    console.info('[DS Logboek userscript] onderzoek vergrootglas:\n' + regels.join('\n'));
   }
 
   // ── Knop: een tweede knop onder het vergrootglas ──────────────
