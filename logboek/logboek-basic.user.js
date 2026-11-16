@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.1.3
+// @version      1.1.4
 // @description  Knop "📋 DS Logboek" rechts van de tabs linksboven; het logboek waarschuwt bij het wisselen van order.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @grant        none
@@ -222,8 +222,27 @@
     k.style.left = Math.round(r.right + gat) + 'px';
     k.style.top = Math.round(r.top) + 'px';
     k.style.height = Math.round(r.height) + 'px';
+    // Ligt er iets over de tabrij heen (filterpopup van het vergrootglas,
+    // een dialoog), dan de knop verbergen: hij zweeft anders bovenop (v1.1.4).
+    k.style.display = 'none';
+    var kr = { l: r.right + gat, t: r.top, h: r.height };
+    var bedekt = [6, 40].some(function (dx) { return bedektOp(laatste, kr.l + dx, kr.t + kr.h / 2); });
+    k.style.display = bedekt ? 'none' : 'inline-flex';
+  }
+  // Wat bovenaan ligt op (x, y) hoort bij de tabrij als het een voorouder van de
+  // tab is (lege ruimte naast de tabs) of binnen de rij zelf valt. Al het andere
+  // (een popup, overlay of dialoog) bedekt de plek.
+  function bedektOp(tab, x, y) {
+    var el = document.elementFromPoint(x, y);
+    if (!el) return false;
+    return !(el.contains(tab) || tab.parentNode.contains(el));
   }
   window.addEventListener('resize', zorgVoorKnop);
+  // Een popup openen of sluiten wijzigt vaak alleen een stijl; de observer kijkt
+  // niet naar attributen, dus na elke klik en toets nog even opnieuw kijken.
+  function straks() { setTimeout(zorgVoorKnop, 300); }
+  document.addEventListener('click', straks, true);
+  document.addEventListener('keyup', straks, true);
 
   // ── Plek van het logboek ──────────────────────────────────────
   // Linksonder, waar ds-logboek.js hem zelf zet: daar zit hij op Basic het
