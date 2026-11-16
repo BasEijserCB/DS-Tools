@@ -201,7 +201,16 @@
   wrapper.id = 'ds-combi-wrapper';
   // Op Basic links-onder zodat het de interface minder verstoort; op consumer portal rechts-boven
   var wrapperPos = 'bottom:20px;left:20px;';
-  wrapper.style.cssText = 'position:fixed;' + wrapperPos + 'width:360px;background:#fff;border:2px solid #0090e3;box-shadow:0 8px 24px rgba(0,0,0,0.18);z-index:999999;border-radius:10px;overflow:hidden;';
+  // Thema 'dirextion' (v1.45.0, opt-in): zelfde opbouw, maar in de stijl van
+  // DireXtion zelf, met DS-oranje als eigen accent. Per origin aan te zetten met
+  //   localStorage.setItem('ds_logboek_thema', 'dirextion')
+  // en uit met removeItem. Zie DS_DIREXTION hieronder.
+  var THEMA = '';
+  try { THEMA = localStorage.getItem('ds_logboek_thema') || ''; } catch (e) {}
+  var dxThema = THEMA === 'dirextion';
+  wrapper.style.cssText = 'position:fixed;' + wrapperPos + 'width:360px;background:#fff;z-index:999999;overflow:hidden;' + (dxThema
+    ? 'border:1px solid #b9c9df;border-top:3px solid #e67e22;border-radius:3px;box-shadow:0 4px 14px rgba(0,0,0,0.15);'
+    : 'border:2px solid #0090e3;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.18);');
   var iframe = document.createElement('iframe');
   iframe.style.cssText = 'width:100%;height:620px;border:none;background:#fff;display:block;';
   wrapper.appendChild(iframe); document.body.appendChild(wrapper);
@@ -294,12 +303,66 @@
     '.rit-melding{font-size:11px;margin-top:5px;line-height:1.4;}'
   ];
 
+  // ── Thema DireXtion (opt-in) ──────────────────────────────────
+  // Overschrijft DS_UI en DS_WIDGET, dus staat als laatste. DireXtion-trekjes:
+  // witte knoppen met grijze rand en bijna rechte hoeken, grijze veldlabels,
+  // lichtblauw voor "geselecteerd" (zoals een gekozen rij in Basic), het
+  // lettertype van de pagina. Eigen accent: DS-oranje #e67e22 (de onderlijn van
+  // de tabknop in logboek-basic.user.js) op de titel, de gekozen optie, focus
+  // en de logknop. Raakt DS_UI niet, dus Extra rijtijd blijft zoals hij is.
+  var DS_DIREXTION = [
+    'html,body{font-size:13px;color:#333333;}',
+    '.header{padding:9px 12px;background:#fff;border-bottom:1px solid #e3e3e3;}',
+    '.header-title{color:#333333;font-size:14px;font-weight:600;padding-bottom:3px;border-bottom:2px solid #e67e22;}',
+    '.header-title::before{content:"\ud83d\udccb";margin-right:7px;font-size:13px;}',
+    '.toggle-btn{background:#fff;border:1px solid #cccccc;color:#666666;border-radius:2px;}',
+    '.toggle-btn:hover{border-color:#e67e22;color:#e67e22;}',
+    '.content{padding:12px;}',
+    'label{font-size:13px;font-weight:700;color:#333333;margin-bottom:8px;}',
+    '.section-label{font-size:11px;color:#999999;text-transform:none;letter-spacing:0;}',
+    'input[type=text],input[type=number]{border:1px solid #d6d6d6;border-radius:2px;padding:7px 9px;font-size:13px;}',
+    'input[type=text]:focus,input[type=number]:focus{border-color:#e67e22;}',
+    '.ux-btn{background:#fff;border:1px solid #d6d6d6;border-radius:2px;padding:7px 10px;font-weight:400;color:#333333;margin-bottom:4px;}',
+    '.ux-btn:hover{background:#f5f5f5;border-color:#aaaaaa;}',
+    '.ux-btn.selected{background:#dce8f8;border-color:#9fb6d6;box-shadow:inset 3px 0 0 #e67e22;color:#333333;font-weight:600;}',
+    '.advies-btn{background:#fff;border-color:#e8c3a3;color:#c0611a;}',
+    '.advies-btn:hover{background:#fdf3ea;border-color:#e67e22;color:#a95416;}',
+    '.advies-knop{background:#fff;border-color:#b2dfb2;box-shadow:inset 3px 0 0 #b2dfb2;}',
+    '.afwijkend-knop{background:#fff;border-color:#e0e0a0;box-shadow:inset 3px 0 0 #e0e0a0;}',
+    '.action-btn{background:#fff;border:1px solid #cccccc;border-radius:2px;color:#333333;font-weight:400;font-size:13px;padding:8px;}',
+    '.action-btn:hover{background:#f5f5f5;border-color:#aaaaaa;}',
+    '.submit-btn{background:#e67e22;border-color:#e67e22;color:#fff;font-weight:600;}',
+    '.submit-btn:hover{background:#cf6d17;border-color:#cf6d17;}',
+    '.back-btn{border:1px solid #e3e3e3;border-radius:2px;padding:7px;}',
+    '.back-btn.active{border-color:#cccccc;color:#333333;}',
+    '.back-btn.active:hover{background:#f5f5f5;}',
+    '.status-bar{background:#f7f7f7;border:1px solid #e3e3e3;color:#666666;border-radius:2px;}',
+    '.info-box,.controle-box{background:#f7f7f7;border:1px solid #e3e3e3;border-left:3px solid #9fb6d6;border-radius:2px;color:#333333;}',
+    '.controle-title{color:#666666;}',
+    '.controle-item{color:#333333;}',
+    '.warning-box,.park-melding{border-left-width:3px;border-radius:2px;}',
+    '.summary-box{background:#f7f7f7;border-left:3px solid #9fb6d6;border-radius:2px;}',
+    '.section-divider{border-top-color:#e3e3e3;}',
+    '.toggle-link{color:#c0611a;}',
+    '.footer{border-top-color:#e3e3e3;}',
+    '.version-bar{background:#f7f7f7;border-top-color:#e3e3e3;}',
+    '.pill{border-radius:2px;}',
+    '.sidebar{background:#fafafa;border-left-color:#e3e3e3;}',
+    '.anders-scroll{border-top-color:#e3e3e3;}',
+    '.rit-chip{background:#fff;border-color:#cccccc;color:#333333;border-radius:2px;}',
+    '.rit-chip:hover{border-color:#e67e22;color:#e67e22;}'
+  ];
+  // Het lettertype van de pagina zelf (DireXtion of de portal), niet een vaste keuze.
+  var paginaFont = '';
+  try { paginaFont = getComputedStyle(document.body).fontFamily.replace(/[<>{}]/g, ''); } catch (e) {}
+  if (paginaFont) DS_DIREXTION.unshift('html,body{font-family:' + paginaFont + ';}');
+
   // Volgorde telt: DS_WIDGET komt ná DS_UI. De knopvarianten daarin
   // (.advies-btn, .advies-knop, .afwijkend-knop) hebben dezelfde
   // specificiteit als .ux-btn, dus alleen als ze later staan winnen ze —
   // anders overschrijft de gedeelde .ux-btn hun kleur en wordt elke knop
   // in de "Anders"-lijst weer blauw.
-  idoc.head.innerHTML = '<style>' + DS_UI.join('') + DS_WIDGET.join('') + '</style>';
+  idoc.head.innerHTML = '<style>' + DS_UI.join('') + DS_WIDGET.join('') + (dxThema ? DS_DIREXTION.join('') : '') + '</style>';
 
   var appContainer = idoc.createElement('div');
   idoc.body.appendChild(appContainer);
@@ -1316,7 +1379,7 @@
             '<span style="font-size:11px;color:'+(geenOrderMode?'#ff6600':'#999999')+';">'+(geenOrderMode?'Gegevens gewist':'Geen order')+'</span>' +
           '</div>' : '') +
         '</div></div>' +
-        '<div class="version-bar">DS Logboek v1.44.0' +
+        '<div class="version-bar">DS Logboek v1.45.0' +
           (callData.user ? ' · <span style="color:#999999;">'+callData.user+'</span> ' + (nameEditConfirm ? '<span style="color:#999999;margin-left:4px;">Naam wissen?</span> <span id="btn-edit-name-yes" style="cursor:pointer;color:#E50000;font-weight:600;margin-left:4px;">Ja</span> <span id="btn-edit-name-no" style="cursor:pointer;color:#999999;margin-left:4px;">Nee</span>' : '<span id="btn-edit-name" title="Naam wijzigen" style="cursor:pointer;opacity:0.45;margin-left:1px;">✎</span>') : '') +
         '</div>' +
       '</div>';
