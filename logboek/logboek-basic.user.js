@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.1.7
+// @version      1.1.8
 // @description  Knop "📋 DS Logboek" rechts van de tabs linksboven; het logboek waarschuwt bij het wisselen van order.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
@@ -37,6 +37,14 @@
   var KNOP_ID = 'ds-logboek-tabknop';
   var BALK_ID = 'ds-logboek-wisselbalk';
   var ORANJE = '#e67e22';
+  var VERSIE = '1.1.8';
+
+  // Diagnose (v1.1.8): in de console (F12, filter "DS Logboek userscript") is te
+  // zien óf het script draait en waarom de knop er (niet) staat. Alleen bij een
+  // verandering van toestand, zodat de console niet volloopt.
+  console.info('[DS Logboek userscript] v' + VERSIE + ' actief op ' + location.pathname);
+  var vorigeToestand = '';
+  function toestand(t) { if (t === vorigeToestand) return; vorigeToestand = t; console.info('[DS Logboek userscript] ' + t); }
 
   function zichtbaar(el) { var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }
 
@@ -206,7 +214,10 @@
   function zorgVoorKnop() {
     var k = document.getElementById(KNOP_ID);
     // Alleen als er een order (visit) open staat: dan staat het visit-tabje rechts.
-    var bekend = orderTab() ? (lijstTab('Orders') || lijstTab('Problemen') || lijstTab('Rit overzicht')) : null;
+    var vt = orderTab();
+    var bekend = vt ? (lijstTab('Orders') || lijstTab('Problemen') || lijstTab('Rit overzicht')) : null;
+    if (!vt) toestand('geen knop: geen open order gevonden (visit-tabje met cijfers rechtsboven)');
+    else if (!bekend) toestand('geen knop: order ' + vt.textContent.trim() + ' open, maar tabs Orders/Problemen/Rit overzicht niet gevonden');
     if (!bekend) { if (k) k.remove(); return; }
     var tabs = tabsInRij(bekend);
     if (!tabs.length) tabs = [bekend];
@@ -230,6 +241,7 @@
     var kr = { l: r.right + gat, t: r.top, h: r.height };
     var bedekt = [6, 40].some(function (dx) { return bedektOp(laatste, kr.l + dx, kr.t + kr.h / 2); });
     k.style.display = bedekt ? 'none' : 'inline-flex';
+    toestand(bedekt ? 'knop verborgen: er ligt iets over de tabrij' : 'knop staat er (order ' + vt.textContent.trim() + ')');
   }
   // Wat bovenaan ligt op (x, y) hoort bij de tabrij als het een voorouder van de
   // tab is (lege ruimte naast de tabs) of binnen de rij zelf valt. Al het andere
