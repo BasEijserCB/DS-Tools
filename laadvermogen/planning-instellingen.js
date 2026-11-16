@@ -9,8 +9,9 @@
 
    WAT HET ZET
    - Vinkjes "rit op kaart" en "visit op kaart" (showTourOnMap,
-     showVisitOnMap) aan, met een echte klik, ook als ze pas later
-     verschijnen (v1.2.0).
+     showVisitOnMap) aan — pas zodra het Rit overzicht rijen heeft
+     (v1.2.1), zodat het ook werkt als het Tampermonkey-script dit bij het
+     laden draait.
    - Kanaalfilter op 2mans levering (id 16), via FilterChannel.SetValue
      (v1.1.0). Staat er al een Rit overzicht, dan #quick-refresh; dat
      triggert een callback van TourGrid, en laadvermogen.js hangt aan
@@ -21,7 +22,7 @@
 (function () {
   'use strict';
 
-  var PLANNING_VERSION = '1.2.0';
+  var PLANNING_VERSION = '1.2.1';
 
   if (!/ModulePlanningBeta/i.test(location.href)) return;
 
@@ -34,32 +35,45 @@
 
   // Vinkjes "Op map tonen?" bij Rit overzicht (showTourOnMap) en bij
   // Ongeplande visits (showVisitOnMap).
-  // - Echt klikken (v1.2.0). Tot v1.1.0: checked = true + een change-event.
-  //   Knockout werkt zijn model bij op een klik, niet op change: het vinkje
-  //   stond er dan wel, maar de kaart deed niets.
-  // - Wachten tot het vinkje er is. Dat bij Rit overzicht verschijnt pas na het
-  //   kiezen van een depot; automatisch bij het laden (Tampermonkey) was het er
-  //   nog niet. Geen tijdslimiet: een depot kiezen kan minuten later zijn.
-  // - Per vinkje-element één keer. Haalt de gebruiker het daarna weg, dan
-  //   blijft het weg; tekent DireXtion het opnieuw (nieuw element), dan wordt
-  //   het opnieuw aangezet.
-  var VINKJES = ['showTourOnMap', 'showVisitOnMap'];
+  // Methode ongewijzigd t.o.v. de bookmarklet (checked + change), want die
+  // werkt. Wat er misging was het moment (v1.2.1): het Tampermonkey-script
+  // draait dit direct bij het laden, als DireXtion zijn afhandeling nog niet
+  // aan de vinkjes gehangen heeft — vinkje stond er, de kaart deed niets — en
+  // het vinkje bij Rit overzicht bestaat dan nog niet eens. Daarom pas zetten
+  // als het Rit overzicht rijen heeft: dan is de pagina net zo klaar als
+  // wanneer iemand de bookmarklet klikt. Staan er al rijen (bookmarklet op een
+  // geladen pagina), dan meteen. Geen tijdslimiet: een depot kiezen kan
+  // minuten later zijn. (v1.2.0 klikte meteen; dat loste het moment niet op.)
+  function ritRijen() {
+    return document.querySelector('[id^="TourGrid"] tr.dxgvDataRow, tr.dxgvDataRow[data-id]');
+  }
   function zetVinkjes() {
-    VINKJES.forEach(function (id) {
+    ['showTourOnMap', 'showVisitOnMap'].forEach(function (id) {
       var el = document.getElementById(id);
-      if (!el || el.__dsGezet) return;
-      el.__dsGezet = true;
-      if (!el.checked) el.click();
+      if (el && !el.checked) {
+        el.checked = true;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     });
   }
-  zetVinkjes();
-  if (window.__planningVinkjes) window.__planningVinkjes.disconnect();
-  var tik = null;
-  window.__planningVinkjes = new MutationObserver(function () {
-    if (tik) return;
-    tik = setTimeout(function () { tik = null; zetVinkjes(); }, 300);
-  });
-  window.__planningVinkjes.observe(document.body, { childList: true, subtree: true });
+  if (window.__planningVinkjes) { window.__planningVinkjes.disconnect(); window.__planningVinkjes = null; }
+  if (ritRijen()) {
+    zetVinkjes();
+  } else {
+    var tik = null;
+    window.__planningVinkjes = new MutationObserver(function () {
+      if (tik) return;
+      tik = setTimeout(function () {
+        tik = null;
+        if (!ritRijen()) return;
+        window.__planningVinkjes.disconnect();
+        window.__planningVinkjes = null;
+        // Even laten bijkomen: de grid is er, de bindingen net daarna.
+        setTimeout(zetVinkjes, 500);
+      }, 300);
+    });
+    window.__planningVinkjes.observe(document.body, { childList: true, subtree: true });
+  }
 
   // Kanaal via de API van de DevExpress-combobox (zoals schuifalias.js), niet
   // meer door de verborgen input te beschrijven en ETextChanged af te vuren.
