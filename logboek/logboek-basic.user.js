@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.4
+// @version      1.2.5
 // @description  Knop DS Logboek onder het vergrootglas; het logboek schuift uit vanaf de linkerrand, zoals het filterpaneel.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
@@ -38,7 +38,7 @@
   var KNOP_ID = 'ds-logboek-tabknop';
   var BALK_ID = 'ds-logboek-wisselbalk';
   var ORANJE = '#e67e22';
-  var VERSIE = '1.2.4';
+  var VERSIE = '1.2.5';
 
   // Diagnose (v1.1.8): in de console (F12, filter "DS Logboek userscript") is te
   // zien óf het script draait en waarom de knop er (niet) staat. Alleen bij een
@@ -400,7 +400,9 @@
     w.style.borderBottomLeftRadius = '0';
   }
 
-  window.DS_LOGBOEK_PLEK = function (w) {
+  var laatsteWrapper = null;
+  window.DS_LOGBOEK_PLEK = function (w, ifr) {
+    laatsteWrapper = w;
     // Ook als het logboek met de bookmarklet of de launcher gestart is.
     openOrder = huidigeOrder();
     genegeerd = '';
@@ -414,6 +416,16 @@
       if (k) plaatsKnop(k);
     }).observe(w);
     volg(IN_MS + 450);   // inschuiven in ds-logboek.js (met vangnet tot 410 ms)
+    // × en loggen gebeuren ín het logboek (eigen iframe-document), dus daar
+    // meeluisteren: na elke klik de knop een tijdje laten meerijden met de rand,
+    // anders bleef hij staan tot de MutationObserver het weg zijn opmerkte (v1.2.5).
+    try {
+      var idoc = ifr && (ifr.contentDocument || ifr.contentWindow.document);
+      if (idoc) idoc.addEventListener('click', function () {
+        volg(UIT_MS + 500);
+        setTimeout(zorgVoorKnop, UIT_MS + 450);
+      }, true);
+    } catch (e) {}
   };
 
   window.addEventListener('resize', function () { var w = wrapperNu(); if (w) plaatsPaneel(w); zorgVoorKnop(); });
@@ -480,6 +492,14 @@
   // ── Bewaken ───────────────────────────────────────────────────
   var timer = null;
   new MutationObserver(function () {
+    // Paneel weg (× of loggen): knop meteen terug naar de rand, niet pas na de
+    // vertraging hieronder (v1.2.5).
+    if (laatsteWrapper && !laatsteWrapper.isConnected) {
+      laatsteWrapper = null;
+      verborgen = false;
+      var k = document.getElementById(KNOP_ID);
+      if (k) plaatsKnop(k);
+    }
     if (timer) return;
     timer = setTimeout(function () { timer = null; zorgVoorKnop(); controleerWissel(); }, 250);
   }).observe(document.body, { childList: true, subtree: true, characterData: true });
