@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         DS Tools — DS Plakken in de Order wizard
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.2
+// @version      1.2.3
 // @description  Zet in de Order wizard (service-order) een knop "Plakken uit DS Logboek" onder Order sjabloon.
 // @match        https://coolblue.dirextion.nl/Import/*
+// @include      /^https:\/\/coolblue\.dirextion\.nl\/import\//i
 // @grant        none
 // @run-at       document-idle
 // @downloadURL  https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/plakken/ds-plakken.user.js
