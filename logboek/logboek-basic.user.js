@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.1.8
+// @version      1.1.9
 // @description  Knop "📋 DS Logboek" rechts van de tabs linksboven; het logboek waarschuwt bij het wisselen van order.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
@@ -37,7 +37,7 @@
   var KNOP_ID = 'ds-logboek-tabknop';
   var BALK_ID = 'ds-logboek-wisselbalk';
   var ORANJE = '#e67e22';
-  var VERSIE = '1.1.8';
+  var VERSIE = '1.1.9';
 
   // Diagnose (v1.1.8): in de console (F12, filter "DS Logboek userscript") is te
   // zien óf het script draait en waarom de knop er (niet) staat. Alleen bij een
@@ -71,26 +71,33 @@
   }
 
   // ── Het tabje van de geopende order ──────────────────────────
-  // Een blad-element met alleen cijfers, bovenin de rechterhelft van het scherm.
+  // Een stuk tekst met alleen cijfers, bovenin de rechterhelft van het scherm.
+  // Gezocht op tekstknopen, niet op elementen (v1.1.9): bij een visit met een
+  // waarschuwing (oranje "!" op het huisje) heeft het tabje een extra kind-
+  // element, en de oude eis "hoogstens één kind" sloeg het dan over. Bij meer
+  // treffers wint de bovenste: het tabje staat boven de velden (telefoonnummer,
+  // afnemernummer) die ook alleen cijfers kunnen zijn.
   function orderTab() {
-    var els = document.querySelectorAll('a, li, span, div');
-    for (var i = 0; i < els.length; i++) {
-      var el = els[i];
-      if (el.children.length > 1 || el.id === KNOP_ID) continue;
-      var t = el.textContent.trim();
-      if (!/^\d{6,12}$/.test(t)) continue;
+    var beste = null, besteTop = Infinity;
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (n) { return /^\s*\d{6,12}\s*$/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP; }
+    });
+    while (walker.nextNode()) {
+      var el = walker.currentNode.parentElement;
+      if (!el || el.closest('#' + KNOP_ID + ', #' + BALK_ID + ', #ds-combi-wrapper')) continue;
       var r = el.getBoundingClientRect();
       if (r.width === 0 || r.top > 320 || r.left < window.innerWidth * 0.4) continue;
-      // Het hele tabje (met icoon), niet alleen de tekst.
-      return el.closest('[role="tab"], .dx-tab, li') || el.parentElement;
+      if (r.top < besteTop) { besteTop = r.top; beste = el; }
     }
-    return null;
+    // Het hele tabje (met icoon), niet alleen de tekst.
+    return beste ? (beste.closest('[role="tab"], .dx-tab, li') || beste.parentElement) : null;
   }
 
   // Ordersleutel: het nummer in het tabje, anders het pakbonnummer.
   function huidigeOrder() {
     var tab = orderTab();
-    if (tab) return tab.textContent.trim();
+    var cijfers = tab && tab.textContent.match(/\d{6,12}/);
+    if (cijfers) return cijfers[0];
     var fields = document.querySelectorAll('.details-field');
     for (var i = 0; i < fields.length; i++) {
       var lbl = fields[i].querySelector('.details-field-label p');
@@ -217,7 +224,7 @@
     var vt = orderTab();
     var bekend = vt ? (lijstTab('Orders') || lijstTab('Problemen') || lijstTab('Rit overzicht')) : null;
     if (!vt) toestand('geen knop: geen open order gevonden (visit-tabje met cijfers rechtsboven)');
-    else if (!bekend) toestand('geen knop: order ' + vt.textContent.trim() + ' open, maar tabs Orders/Problemen/Rit overzicht niet gevonden');
+    else if (!bekend) toestand('geen knop: order ' + huidigeOrder() + ' open, maar tabs Orders/Problemen/Rit overzicht niet gevonden');
     if (!bekend) { if (k) k.remove(); return; }
     var tabs = tabsInRij(bekend);
     if (!tabs.length) tabs = [bekend];
@@ -241,7 +248,7 @@
     var kr = { l: r.right + gat, t: r.top, h: r.height };
     var bedekt = [6, 40].some(function (dx) { return bedektOp(laatste, kr.l + dx, kr.t + kr.h / 2); });
     k.style.display = bedekt ? 'none' : 'inline-flex';
-    toestand(bedekt ? 'knop verborgen: er ligt iets over de tabrij' : 'knop staat er (order ' + vt.textContent.trim() + ')');
+    toestand(bedekt ? 'knop verborgen: er ligt iets over de tabrij' : 'knop staat er (order ' + huidigeOrder() + ')');
   }
   // Wat bovenaan ligt op (x, y) hoort bij de tabrij als het een voorouder van de
   // tab is (lege ruimte naast de tabs) of binnen de rij zelf valt. Al het andere
