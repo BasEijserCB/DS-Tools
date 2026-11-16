@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.6
+// @version      1.2.7
 // @description  Knop DS Logboek onder het vergrootglas; het logboek schuift uit vanaf de linkerrand, zoals het filterpaneel.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
@@ -38,7 +38,7 @@
   var KNOP_ID = 'ds-logboek-tabknop';
   var BALK_ID = 'ds-logboek-wisselbalk';
   var ORANJE = '#e67e22';
-  var VERSIE = '1.2.6';
+  var VERSIE = '1.2.7';
 
   // Diagnose (v1.1.8): in de console (F12, filter "DS Logboek userscript") is te
   // zien óf het script draait en waarom de knop er (niet) staat. Alleen bij een
@@ -228,6 +228,7 @@
   // Open: hij vormt een tab met het paneel, zonder rand ertussen.
   var GAT = 4;                    // ruimte tussen vergrootglas en onze knop (zoals de linkerbalk van de planningsmodule)
   var LICHT_ORANJE = '#fdf0e4';
+  var RAND_ORANJE = '1px solid #ff8c1a';   // dun, fel oranje randje: valt net wat meer op (v1.2.7)
   var IN_MS = 260, UIT_MS = 200;  // zelfde tempo als het inschuiven in ds-logboek.js
   var loep = null;
   var verborgen = false;          // logboek bestaat maar is weggeschoven
@@ -256,9 +257,7 @@
     st.color = getComputedStyle(ic || lp).color || '#333333';
     st.backgroundColor = LICHT_ORANJE;   // eigen accent: licht oranje vlak (v1.2.4)
     st.boxShadow = cs.boxShadow;
-    ['Top', 'Right', 'Bottom', 'Left'].forEach(function (z) {
-      st['border' + z] = cs['border' + z + 'Width'] + ' ' + cs['border' + z + 'Style'] + ' ' + cs['border' + z + 'Color'];
-    });
+    ['Top', 'Right', 'Bottom', 'Left'].forEach(function (z) { st['border' + z] = RAND_ORANJE; });
     st.borderRadius = cs.borderRadius;
     st.cursor = 'pointer';
     // Stijl op de linkerrand bewaren: open wordt hij tijdelijk een tab van het paneel.
@@ -295,12 +294,12 @@
       var rw = w.getBoundingClientRect();
       if (rw.right - 1 > left) {
         left = rw.right - 1; top = rw.top; vast = true;
-        var cw = getComputedStyle(w);
-        rand = cw.borderRightWidth + ' solid ' + cw.borderRightColor;
+        rand = RAND_ORANJE;
       }
     }
-    // Vast aan het paneel: geen linkerrand, randkleur van het paneel, en boven het
-    // paneel (z-index) zodat hij diens rechterrand over zijn hoogte afdekt — een tab.
+    // Vast aan het paneel: geen linkerrand, en boven het paneel (z-index) zodat
+    // hij diens rechterrand over zijn hoogte afdekt — een tab. Het oranje randje
+    // blijft, ook als tab.
     var rs = k._rail || {};
     k.style.borderTop = vast ? rand : rs.borderTop;
     k.style.borderRight = vast ? rand : rs.borderRight;
