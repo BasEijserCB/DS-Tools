@@ -108,7 +108,10 @@
     { pad: 'logboek/logboek-portal.user.js', icoon: '📋', naam: 'DS Logboek op de consumer portal', status: 'dev', waar: 'Consumer portal',
       uitleg: 'Opent DS Logboek vanzelf naast de pagina.' },
     { pad: 'plakken/ds-plakken.user.js', icoon: '🚀', naam: 'DS Plakken in de Order wizard', status: 'dev', waar: 'Import · Order wizard',
-      uitleg: 'Knop "Plakken uit DS Logboek" in de Order wizard.' }
+      uitleg: 'Knop "Plakken uit DS Logboek" in de Order wizard.' },
+    { pad: 'sophia/sft-autopilot.user.js', icoon: '🤖', naam: 'SFT autopilot op Cpc repair approval', status: 'dev', waar: 'Sophia',
+      uitleg: 'Opent het SFT autopilot-overlay vanzelf op Cpc repair → Approval. Start autopilot blijft een klik.',
+      nodig: 'Persoonlijke build (zelfde code als de bladwijzer SFT 🤖), alleen voor Bas.' }
   ];
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }

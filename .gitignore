@@ -60,6 +60,10 @@
 /opmerking/*
 !/opmerking/opmerking-knoppen.user.js
 
+!/sophia/
+/sophia/*
+!/sophia/sft-autopilot.user.js
+
 !/extern/
 /extern/*
 !/extern/*.js
