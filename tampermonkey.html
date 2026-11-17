@@ -51,11 +51,12 @@
   <div class="card">
     <h2>Installeren</h2>
     <ol>
-      <li>Je hebt de extensie <b>Tampermonkey</b> nodig. Heb je het Service Check-script al, dan heb je hem.</li>
+      <li>Je hebt de extensie <b>Tampermonkey</b> nodig (<a href="https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo">Chrome Web Store</a>). Heb je het Service Check-script al, dan heb je hem.</li>
       <li>Klik bij een script op <b>Installeren</b>. Tampermonkey opent een scherm met de code; klik daar op <b>Installeren</b>.</li>
       <li>Herlaad de DireXtion-pagina waar het script voor is.</li>
     </ol>
-    <p class="uitleg">Uitzetten of verwijderen: Tampermonkey-icoon → <b>Dashboard</b>.</p>
+    <p class="uitleg">Doet een script niets? Ga naar <code>chrome://extensions</code> → Tampermonkey → <b>Details</b> en controleer: de schakelaar staat aan, <b>Toegang tot site</b> staat op <i>Op alle sites</i>, en <b>Gebruikersscripts toestaan</b> staat aan (zie je die optie niet, zet dan rechtsboven <i>Ontwikkelaarsmodus</i> aan).<br>
+    Uitzetten of verwijderen: Tampermonkey-icoon → <b>Dashboard</b>.</p>
   </div>
 
   <div class="card">
@@ -78,8 +79,8 @@
   </div>
 
   <div class="card">
-    <h2>Niet van deze pagina</h2>
-    <p><b>Coolblue Service Check</b> (van David) staat niet hier: dat script komt niet uit DS Tools. <i>DS Logboek in Basic</i> gebruikt het voor de lade Service Check; zonder dat script opent het resultaat in een nieuw tabblad.</p>
+    <h2>Coolblue Service Check</h2>
+    <p>Dit script is van David; hier staat een kopie van de versie die zijn installatiepagina uitdeelt. Heb je het al (geplakt via <i>Een nieuw script maken</i>), dan hoef je niets te doen. Nieuw installeren kan hier; Tampermonkey haalt updates dan van deze kopie.</p>
   </div>
 </div>
 <script>
@@ -90,11 +91,18 @@
   var SCRIPTS = [
     { pad: 'laadvermogen/planning-combi.user.js', icoon: '⚙️', naam: 'Planning-combi', status: 'productie', waar: 'Planningsmodule',
       uitleg: 'Vaste planningsinstellingen en het echte laadvermogen uit Fleetio, vanzelf.' },
+    // Van David: letterlijke kopie van ~/Documents/Tool David/Service_Check_v2.user.js (= wat
+    // zijn installatiepagina uitdeelt). Geen @updateURL: Tampermonkey kijkt dan naar het adres
+    // waarvan geïnstalleerd is, dus naar deze kopie. Eigen korte uitleg (zijn @description is technisch).
+    { pad: 'extern/service-check.user.js', icoon: '⇢', naam: 'Coolblue Service Check', status: 'productie', waar: 'DireXtion · coolblue.nl/.be/.de',
+      uitleg: 'Laat de Service Check-bladwijzer (en de lade in DS Logboek in Basic) het resultaat in DireXtion zelf tonen, in plaats van in een nieuw tabblad.',
+      nodig: 'Van David. De eerste keer vraagt Tampermonkey of het Coolblue mag ophalen: kies “Altijd toestaan voor domein” (één keer per land).',
+      eigenUitleg: true },
     { pad: 'ev/ev-ritten.user.js', icoon: '⚡', naam: 'EV-ritten', status: 'test', waar: 'Ritmonitor',
       uitleg: '⚡ EV bij ritten met een elektrische bus.' },
     { pad: 'logboek/logboek-basic.user.js', icoon: '📋', naam: 'DS Logboek in Basic', status: 'dev', waar: 'DireXtion Basic',
       uitleg: 'Knoppen DS Logboek en Service Check onder het vergrootglas.',
-      nodig: 'Lade Service Check: werkt samen met het script Coolblue Service Check.' },
+      nodig: 'Lade Service Check: installeer ook Coolblue Service Check (hierboven).' },
     { pad: 'opmerking/opmerking-knoppen.user.js', icoon: '🎉', naam: 'Same day / Next day in Opmerkingen', status: 'dev', waar: 'DireXtion Basic',
       uitleg: 'Knoppen in de balk Opmerkingen: één klik voegt de vaste opmerking toe en slaat op.' },
     { pad: 'logboek/logboek-portal.user.js', icoon: '📋', naam: 'DS Logboek op de consumer portal', status: 'dev', waar: 'Consumer portal',
@@ -123,7 +131,7 @@
       .then(function (code) {
         var v = code.match(/@version\s+(\S+)/), d = code.match(/@description\s+(.+)/);
         if (v) document.getElementById('v' + i).textContent = 'v' + v[1];
-        if (d) document.getElementById('u' + i).textContent = d[1].trim();
+        if (d && !s.eigenUitleg) document.getElementById('u' + i).textContent = d[1].trim();
       })
       .catch(function (e) {
         document.getElementById('v' + i).textContent = 'versie onbekend';
