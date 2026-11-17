@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — Same day / Next day in Opmerkingen
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.0.0
+// @version      1.1.0
 // @description  Knoppen "Same day" en "Next day" in de balk Opmerkingen van een order in DireXtion Basic: één klik voegt de vaste opmerking toe en slaat op.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
@@ -35,7 +35,7 @@
 (function () {
   'use strict';
 
-  var VERSIE = '1.0.0';
+  var VERSIE = '1.1.0';
   var ID = 'ds-opmerking-knoppen';
   var TEKSTEN = [
     { naam: 'Same day', tekst: 'Wordt al opgelost, via nieuw bezoek van bezorger(s) op dezelfde dag' },
@@ -90,7 +90,7 @@
     var s = document.createElement('style');
     s.id = ID + '-stijl';
     s.textContent =
-      '#' + ID + '{display:inline-flex;align-items:center;gap:6px;margin-left:14px;vertical-align:middle;' +
+      '#' + ID + '{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;' +
         'font-weight:normal;text-transform:none;letter-spacing:normal;white-space:nowrap;line-height:normal;}' +
       '#' + ID + ' button{font-family:inherit;font-size:11px;font-weight:400;line-height:16px;height:20px;' +
         'margin:0;padding:0 8px;border:1px solid #ff8c1a;border-radius:2px;background:#fdf0e4;color:#333;' +
@@ -148,21 +148,96 @@
     return groep;
   }
 
+  // ── Plaatsen: rechts in de balk, links van het pijltje (v1.1.0) ──────────
+  // De opbouw van de balk is niet vastgelegd, dus alles op meting.
+  function rect(el) { return el.getBoundingClientRect(); }
+  // De tekst "Opmerkingen" zelf, niet zijn element: een <p> in een blokbalk is
+  // even breed als de hele balk.
+  function tekstRect(titel) {
+    try {
+      var r = document.createRange();
+      r.selectNodeContents(titel.knoop);
+      var x = r.getBoundingClientRect();
+      if (x.width) return x;
+    } catch (e) {}
+    return rect(titel.el);
+  }
+  function beschrijf(el) { return el.tagName.toLowerCase() + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).join('.') : ''); }
+
+  // De balk: van de titel (of .details-content-header, de sectiekop van Basic)
+  // omhoog zolang de ouder nog één balk hoog is. De sectie zelf is hoger, want
+  // daar hoort de tabel bij.
+  function balkVan(titelEl) {
+    var max = Math.max(48, rect(titelEl).height * 2.2);
+    var balk = titelEl.closest('.details-content-header') || titelEl;
+    while (balk.parentElement && balk.parentElement !== document.body && rect(balk.parentElement).height <= max) balk = balk.parentElement;
+    return balk;
+  }
+
+  // Het pijltje (inklappen): het meest rechtse lege, kleine element in de balk,
+  // rechts van de titel en op dezelfde hoogte. Van daar omhoog zolang de ouder
+  // ook leeg is (bijv. <a><svg>), zodat we naast het hele knopje komen.
+  function pijltjeIn(balk, titel) {
+    var titelEl = titel.el, t = tekstRect(titel), midden = (t.top + t.bottom) / 2, beste = null, besteRechts = -Infinity;
+    var els = balk.querySelectorAll('*');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el.closest('#' + ID) || el.contains(titelEl) || el.textContent.trim()) continue;
+      var r = rect(el);
+      if (r.width < 4 || r.width > 48 || r.left < t.right || r.top > midden || r.bottom < midden) continue;
+      if (r.right > besteRechts) { besteRechts = r.right; beste = el; }
+    }
+    while (beste && beste.parentElement && beste.parentElement !== balk &&
+           !beste.parentElement.textContent.trim() && !beste.parentElement.contains(titelEl)) beste = beste.parentElement;
+    return beste;
+  }
+
   function plaats(titel) {
     stijl();
     var groep = maakGroep();
-    var ouder = titel.el;
-    // Direct achter de titeltekst, in hetzelfde element: dan staan de knoppen
-    // naast "Opmerkingen", ook als de balk titel en pijltje uit elkaar duwt.
-    ouder.insertBefore(groep, titel.knoop.nextSibling);
-    // Past het daar niet (titel met vaste breedte of afgekapt), dan erachter.
-    var r = groep.getBoundingClientRect(), p = ouder.getBoundingClientRect();
-    if (r.width === 0 || r.right > p.right + 1 || r.top >= p.bottom - 1) {
-      ouder.parentNode.insertBefore(groep, ouder.nextSibling);
-      toestand('knoppen geplaatst achter de titel Opmerkingen (paste niet in de titel zelf)');
+    var balk = balkVan(titel.el);
+    var pijl = pijltjeIn(balk, titel);
+    var bak = pijl ? pijl.parentElement : balk;
+    var flex = /flex/.test(getComputedStyle(bak).display);
+    if (flex) {
+      // Flex: margin-left:auto duwt de knoppen (en het pijltje erachter) naar rechts.
+      bak.insertBefore(groep, pijl);
+      groep.style.marginLeft = 'auto';
+      groep.style.alignSelf = 'center';
     } else {
-      toestand('knoppen geplaatst naast de titel Opmerkingen');
+      // Blok: rechts laten zweven. Zweeft het pijltje zelf ook rechts, dan
+      // erachter in de DOM (komt dan links ervan); anders vooraan in de bak.
+      groep.style.cssFloat = 'right';
+      if (pijl && getComputedStyle(pijl).cssFloat === 'right') bak.insertBefore(groep, pijl.nextSibling);
+      else bak.insertBefore(groep, bak.firstChild);
     }
+    if (pijl) groep.style.marginRight = '8px';
+
+    // Nameten. Overlapt het pijltje (bijv. absoluut gepositioneerd), dan opzij.
+    var g = rect(groep);
+    if (pijl) {
+      var p = rect(pijl);
+      if (g.right > p.left - 4 && g.left < p.right) {
+        groep.style.marginRight = (8 + g.right - p.left + 8) + 'px';
+        g = rect(groep);
+      }
+    }
+    // Op één lijn met de titel (relatief: verschuift niets anders).
+    var t = tekstRect(titel), dy = Math.round((t.top + t.bottom) / 2 - (g.top + g.bottom) / 2);
+    if (Math.abs(dy) > 1 && Math.abs(dy) < 30) { groep.style.position = 'relative'; groep.style.top = dy + 'px'; }
+
+    // Valt hij buiten de balk (naar een volgende regel), dan terug naast de titel.
+    var b = rect(balk);
+    g = rect(groep);
+    if (g.width === 0 || g.top + g.height / 2 > b.bottom || g.left < t.right) {
+      groep.removeAttribute('style');
+      groep.style.marginLeft = '14px';
+      titel.el.insertBefore(groep, titel.knoop.nextSibling);
+      toestand('knoppen naast de titel Opmerkingen (rechts in de balk paste niet; balk ' + beschrijf(balk) + ')');
+      return;
+    }
+    toestand('knoppen rechts in de balk Opmerkingen (balk ' + beschrijf(balk) + ', ' + (flex ? 'flex' : 'blok') +
+      ', pijltje: ' + (pijl ? beschrijf(pijl) : 'geen') + ')');
   }
 
   function zoek() {
