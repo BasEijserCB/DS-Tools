@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.3.0
+// @version      1.3.1
 // @description  Knoppen DS Logboek en Service Check onder het vergrootglas; hun panelen schuiven uit vanaf de linkerrand, zoals het filterpaneel.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
@@ -23,9 +23,9 @@
       boven) of zolang er een weggeschoven paneel is; verborgen als het
       filterpaneel openstaat.
    2. Gedrag, zoals het filterpaneel. Klik: het paneel schuift uit vanaf de
-      linkerrand en de knoppen rijden mee naar zijn rechterrand (die van het
-      open paneel vormt er een tab mee). Nog een klik: wegschuiven, de inhoud
-      blijft. Een andere knop: wisselen. Het vergrootglas: alles weg. Alleen ×
+      linkerrand, op de hoogte van zijn knop, en die knop rijdt mee naar zijn
+      rechterrand als tab (v1.3.1: alleen die knop). Nog een klik: wegschuiven,
+      de inhoud blijft. Een andere (zichtbare) knop: wisselen. Het vergrootglas: alles weg. Alleen ×
       in een paneel sluit het. Oranje stip op het logboek = er wacht een gesprek.
    3. Orderwissel. Basic wisselt van order zonder nieuwe pagina; het logboek
       leest de order maar één keer. Verandert het ordernummer terwijl het
@@ -43,7 +43,7 @@
   var ORANJE = '#e67e22';
   // Onze eigen elementen: overslaan bij het zoeken naar visit-tabje en vergrootglas.
   var EIGEN = '#' + KNOP_ID + ', #ds-sc-knop, #ds-sc-paneel, #' + BALK_ID + ', #ds-combi-wrapper';
-  var VERSIE = '1.3.0';
+  var VERSIE = '1.3.1';
 
   // Diagnose (v1.1.8): in de console (F12, filter "DS Logboek userscript") is te
   // zien óf het script draait en waarom de knop er (niet) staat. Alleen bij een
@@ -240,10 +240,9 @@
   // Knoppen: maat, schaduw en hoek van het vergrootglas (computed style, geen
   // klassen: DireXtion's klikafhandeling grijpt er dan niet op in), een lijn-
   // icoon, een licht oranje vlak en een dun fel oranje randje als eigen accent.
-  // Staat een paneel open, dan rijden alle knoppen mee naar zijn rechterrand;
-  // die van het open paneel vormt er een tab mee. Zo wissel je zonder eerst te
-  // sluiten. Een oranje stip (alleen het logboek) = er wacht een weggeschoven
-  // gesprek.
+  // Elke knop hoort bij zijn eigen paneel: alleen die rijdt mee (zie
+  // plaatsKnoppen). Een oranje stip (alleen het logboek) = er wacht een
+  // weggeschoven gesprek.
   var GAT = 4;                    // ruimte tussen de knoppen (zoals de linkerbalk van de planningsmodule)
   var LICHT_ORANJE = '#fdf0e4';
   var RAND_ORANJE = '1px solid #ff8c1a';
@@ -314,29 +313,27 @@
     return k;
   }
 
-  // Het paneel waar de knoppen langs rijden: het zichtbare (ook tijdens het
-  // wegschuiven). Bij wisselen schuift er één weg en één in: dan het nieuwe.
-  function randPaneel() {
-    var zichtbaar = LADEN.filter(function (l) { var p = l.paneel(); return p && p.style.visibility !== 'hidden'; });
-    var nieuw = zichtbaar.filter(function (l) { return !l.verborgen; })[0];
-    return nieuw || zichtbaar[0] || null;
-  }
-
+  // Elke knop hoort bij zijn eigen paneel (v1.3.1): alleen de knop van een
+  // zichtbaar paneel rijdt mee naar diens rechterrand en vormt er een tab mee
+  // (ook tijdens het wegschuiven). De andere knoppen blijven aan de linkerrand,
+  // onder de panelen (z-index), zoals DireXtion's filterpaneel ook over de
+  // pagina schuift. v1.3.0 liet alle knoppen met een open paneel meerijden.
   function plaatsKnoppen() {
     if (!loep || !loep.isConnected) return;
     var rl = loep.getBoundingClientRect();
-    var rp = randPaneel(), rw = rp ? rp.paneel().getBoundingClientRect() : null;
     LADEN.forEach(function (l, i) {
       var k = document.getElementById(l.knopId);
       if (!k) return;
-      var left = rl.left, top = rl.bottom + GAT + i * (rl.height + GAT);
-      var langs = !!(rw && rw.right - 1 > left);
-      if (langs) left = rw.right - 1;
-      var tab = langs && rp === l;   // de knop van het open paneel: een tab, zonder linkerrand
-      k.style.borderLeft = tab ? '0' : RAND_ORANJE;
-      k.style.borderRadius = langs ? '0' : k._hoek;
-      k.style.zIndex = langs ? '1000000' : '1000';
+      var left = rl.left, top = knopTop(i);
       var p = l.paneel();
+      var tab = false;
+      if (p && p.style.visibility !== 'hidden') {
+        var rw = p.getBoundingClientRect();
+        if (rw.right - 1 > left) { left = rw.right - 1; tab = true; }
+      }
+      k.style.borderLeft = tab ? '0' : RAND_ORANJE;
+      k.style.borderRadius = tab ? '0' : k._hoek;
+      k.style.zIndex = tab ? '1000000' : '1000';
       var wacht = l.stip && p && l.verborgen;
       var stip = k.querySelector('.ds-logboek-stip');
       if (stip) stip.style.display = wacht ? 'block' : 'none';
@@ -346,6 +343,12 @@
       k.style.width = Math.round(rl.width) + 'px';
       k.style.height = Math.round(rl.height) + 'px';
     });
+  }
+
+  // Bovenkant van de knop op plek i in de rij onder het vergrootglas.
+  function knopTop(i) {
+    var rl = loep.getBoundingClientRect();
+    return rl.bottom + GAT + i * (rl.height + GAT);
   }
 
   // De knoppen een tijdje elk beeld volgen (tijdens het schuiven).
@@ -445,19 +448,20 @@
   function stopWachten() { if (loepPoll) { clearInterval(loepPoll); loepPoll = null; } }
 
   // ── Plek van een paneel ───────────────────────────────────────
-  // Tegen de linkerrand, met de bovenkant gelijk aan de eerste knop (het
-  // vergrootglas blijft erboven bereikbaar). Past hij daar niet in de hoogte,
-  // dan schuift hij omhoog.
-  function paneelTop(h) {
+  // Tegen de linkerrand, met de bovenkant gelijk aan zijn eigen knop — zoals het
+  // filterpaneel aan het vergrootglas hangt (v1.3.1; het vergrootglas en de
+  // knoppen erboven blijven bereikbaar). Past hij daar niet in de hoogte, dan
+  // schuift hij omhoog.
+  function paneelTop(l, h) {
     if (!loep || !loep.isConnected) loep = vindLoep();
     if (!loep) return null;
-    var top = Math.round(loep.getBoundingClientRect().bottom + GAT);
+    var top = Math.round(knopTop(LADEN.indexOf(l)));
     if (h && top + h > window.innerHeight - 8) top = Math.max(8, Math.round(window.innerHeight - 8 - h));
     return top;
   }
 
   function plaatsPaneel(w) {
-    var top = paneelTop(w.getBoundingClientRect().height);
+    var top = paneelTop(LOGBOEK, w.getBoundingClientRect().height);
     if (top === null) return;
     w.style.left = '0px';
     w.style.bottom = 'auto';
@@ -570,7 +574,7 @@
   function plaatsScPaneel() {
     var p = scPaneelNu();
     if (!p) return;
-    var top = paneelTop(0);
+    var top = paneelTop(SC, 0);
     if (top === null) return;
     p.style.top = top + 'px';
     p.style.maxHeight = Math.max(200, window.innerHeight - top - 8) + 'px';
