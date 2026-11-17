@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tampermonkey-scripts</title>
+<style>
+  /* Stijlblok gekopieerd uit index.html / launcher/install-dev.html (niet gedeeld, zoals de andere pagina's). */
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #F2F7FC; font: 14px "Segoe UI", Arial, sans-serif; color: #333333; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { font-size: 22px; color: #285dab; margin: 0 0 4px; }
+  .sub { color: #999999; margin: 0 0 24px; }
+  .card { background: #fff; border: 1px solid #cce9f9; border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
+  h2 { font-size: 15px; margin: 0 0 12px; color: #285dab; }
+  p { line-height: 1.5; margin: 0 0 10px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 8px 6px; border-top: 1px solid #DDDDDD; vertical-align: middle; }
+  tr:first-child td { border-top: none; }
+  .ic { font-size: 18px; width: 28px; text-align: center; }
+  .naam { font-weight: 600; }
+  .uitleg { font-size: 12px; color: #999999; }
+  .melding { border-radius: 6px; padding: 10px 12px; margin-top: 12px; font-size: 13px; line-height: 1.5; }
+  .let { background: #fff8e1; color: #856404; }
+  ol, ul { margin: 0 0 10px; padding-left: 20px; line-height: 1.6; }
+  code { font: 12px ui-monospace, Menlo, monospace; background: #F3F3F3; padding: 1px 4px; border-radius: 4px; }
+  .waar { font-size: 12px; color: #285dab; white-space: nowrap; }
+
+  /* Eigen aan deze pagina */
+  .pil { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 4px; padding: 0 5px; margin-left: 4px; border: 1px solid; vertical-align: 1px; }
+  .pil.productie { color: #155724; background: #d4edda; border-color: #00B900; }
+  .pil.test { color: #856404; background: #fff8e1; border-color: #ffc107; }
+  .pil.dev { color: #999999; background: #F3F3F3; border-color: #DDDDDD; }
+  .versie { font: 11px ui-monospace, Menlo, monospace; color: #999999; white-space: nowrap; }
+  .nodig { font-size: 12px; color: #856404; margin-top: 2px; }
+  .inst { display: inline-block; background: #0090e3; color: #fff; text-decoration: none; border-radius: 8px; padding: 7px 14px; font-weight: 600; font-size: 13px; white-space: nowrap; }
+  .inst:hover { background: #007bc4; }
+  td.knopcel { text-align: right; width: 1%; }
+  @media (max-width: 560px) {
+    .waar, .versie { display: none; }
+    .card { padding: 14px 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧩 Tampermonkey-scripts</h1>
+  <p class="sub">Scripts die vanzelf starten als je een DireXtion-pagina opent — geen klik op een bladwijzer nodig.</p>
+
+  <div class="card">
+    <h2>Installeren</h2>
+    <ol>
+      <li>Je hebt de extensie <b>Tampermonkey</b> nodig. Heb je het Service Check-script al, dan heb je hem.</li>
+      <li>Klik bij een script op <b>Installeren</b>. Tampermonkey opent een scherm met de code; klik daar op <b>Installeren</b>.</li>
+      <li>Herlaad de DireXtion-pagina waar het script voor is.</li>
+    </ol>
+    <p class="uitleg">Uitzetten of verwijderen: Tampermonkey-icoon → <b>Dashboard</b>.</p>
+  </div>
+
+  <div class="card">
+    <h2>Scripts</h2>
+    <div id="lijst"></div>
+    <p class="uitleg" style="margin-top:12px">
+      <span class="pil productie">productie</span> voor iedereen ·
+      <span class="pil test">test</span> werkt, wordt nog bekeken ·
+      <span class="pil dev">dev</span> in ontwikkeling, nog niet (volledig) op de echte pagina getest
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Updates</h2>
+    <ul>
+      <li><b>De tool zelf</b> (bijv. DS Logboek) wordt vanzelf bijgewerkt: bij het openen van de pagina opgehaald, de keer daarna actief.</li>
+      <li><b>Het script</b> wordt door Tampermonkey ongeveer één keer per dag gecontroleerd. Meteen bijwerken: klik hier opnieuw op <b>Installeren</b> (Tampermonkey toont dan <b>Bijwerken</b>), of Dashboard → <i>Check for userscript updates</i>.</li>
+      <li>Tot 5 minuten na een wijziging kan GitHub nog de vorige versie geven. Staat er nog het oude versienummer, probeer het dan zo nog eens.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Niet van deze pagina</h2>
+    <p><b>Coolblue Service Check</b> (van David) staat niet hier: dat script komt niet uit DS Tools. <i>DS Logboek in Basic</i> gebruikt het voor de lade Service Check; zonder dat script opent het resultaat in een nieuw tabblad.</p>
+  </div>
+</div>
+<script>
+(function () {
+  // Eén regel per .user.js in de repo. Nieuw script? Hier toevoegen (en in README.md).
+  // Versie en beschrijving komen live uit de kop van het script zelf.
+  var RAW = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/';
+  var SCRIPTS = [
+    { pad: 'laadvermogen/planning-combi.user.js', icoon: '⚙️', naam: 'Planning-combi', status: 'productie', waar: 'Planningsmodule',
+      uitleg: 'Vaste planningsinstellingen en het echte laadvermogen uit Fleetio, vanzelf.' },
+    { pad: 'ev/ev-ritten.user.js', icoon: '⚡', naam: 'EV-ritten', status: 'test', waar: 'Ritmonitor',
+      uitleg: '⚡ EV bij ritten met een elektrische bus.' },
+    { pad: 'logboek/logboek-basic.user.js', icoon: '📋', naam: 'DS Logboek in Basic', status: 'dev', waar: 'DireXtion Basic',
+      uitleg: 'Knoppen DS Logboek en Service Check onder het vergrootglas.',
+      nodig: 'Lade Service Check: werkt samen met het script Coolblue Service Check.' },
+    { pad: 'opmerking/opmerking-knoppen.user.js', icoon: '🎉', naam: 'Same day / Next day in Opmerkingen', status: 'dev', waar: 'DireXtion Basic',
+      uitleg: 'Knoppen in de balk Opmerkingen: één klik voegt de vaste opmerking toe en slaat op.' },
+    { pad: 'logboek/logboek-portal.user.js', icoon: '📋', naam: 'DS Logboek op de consumer portal', status: 'dev', waar: 'Consumer portal',
+      uitleg: 'Opent DS Logboek vanzelf naast de pagina.' },
+    { pad: 'plakken/ds-plakken.user.js', icoon: '🚀', naam: 'DS Plakken in de Order wizard', status: 'dev', waar: 'Import · Order wizard',
+      uitleg: 'Knop "Plakken uit DS Logboek" in de Order wizard.' }
+  ];
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  document.getElementById('lijst').innerHTML = '<table>' + SCRIPTS.map(function (s, i) {
+    return '<tr>' +
+      '<td class="ic">' + s.icoon + '</td>' +
+      '<td><div class="naam">' + esc(s.naam) + '<span class="pil ' + s.status + '">' + s.status + '</span></div>' +
+        '<div class="uitleg" id="u' + i + '">' + esc(s.uitleg) + '</div>' +
+        (s.nodig ? '<div class="nodig">' + esc(s.nodig) + '</div>' : '') + '</td>' +
+      '<td class="waar">' + esc(s.waar) + '<div class="versie" id="v' + i + '">&nbsp;</div></td>' +
+      '<td class="knopcel"><a class="inst" href="' + RAW + s.pad + '" title="' + esc(s.pad) + '">Installeren</a></td>' +
+    '</tr>';
+  }).join('') + '</table>';
+
+  // Versie en beschrijving live uit de scriptkop (@version, @description).
+  SCRIPTS.forEach(function (s, i) {
+    fetch(RAW + s.pad + '?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function (code) {
+        var v = code.match(/@version\s+(\S+)/), d = code.match(/@description\s+(.+)/);
+        if (v) document.getElementById('v' + i).textContent = 'v' + v[1];
+        if (d) document.getElementById('u' + i).textContent = d[1].trim();
+      })
+      .catch(function (e) {
+        document.getElementById('v' + i).textContent = 'versie onbekend';
+        console.warn('[Tampermonkey-scripts] ' + s.pad + ':', e);
+      });
+  });
+})();
+</script>
+</body>
+</html>
