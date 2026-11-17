@@ -55,6 +55,10 @@
 /plakken/*
 !/plakken/ds-plakken.user.js
 
+!/opmerking/
+/opmerking/*
+!/opmerking/opmerking-knoppen.user.js
+
 !/extern/
 /extern/*
 !/extern/*.js
