@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.7
-// @description  Knop DS Logboek onder het vergrootglas; het logboek schuift uit vanaf de linkerrand, zoals het filterpaneel.
+// @version      1.3.0
+// @description  Knoppen DS Logboek en Service Check onder het vergrootglas; hun panelen schuiven uit vanaf de linkerrand, zoals het filterpaneel.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
 // @match        https://coolblue.dirextion.nl/BASIC/*
@@ -12,24 +12,27 @@
 // @updateURL    https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/logboek/logboek-basic.user.js
 // ==/UserScript==
 
-/* Dunne starter: ds-logboek.js wordt met stale-while-revalidate geladen onder
-   dezelfde cache-sleutel als de bookmarklet en de launcher (ds_app_prod_cache).
+/* Dunne starter: de tools zelf worden met stale-while-revalidate geladen onder
+   dezelfde cache-sleutels als de bladwijzers en de launcher — ds-logboek.js
+   (ds_app_prod_cache) en extern/service-check.js (ds_servicecheck_cache).
 
-   1. Knop (v1.2.0). Een vierkante knop direct onder het vergrootglas aan de
-      linkerrand, in dezelfde stijl, met een klembord-icoon; een oranje stip
-      zolang er een weggeschoven logboek wacht (v1.2.3). Zichtbaar bij een open order (visit-tabje met cijfers rechts-
-      boven) of zolang er een weggeschoven logboek is; verborgen als het
-      filterpaneel openstaat. v1.1.x had een tabknop naast Rit overzicht.
-   2. Gedrag, zoals het filterpaneel. Klik: het logboek schuift uit vanaf de
-      linkerrand, de knop rijdt mee naar de rechterbovenhoek van het paneel.
-      Nog een klik: het paneel schuift weg en het gesprek blijft bewaard; alleen
-      × in het logboek beëindigt het. Klik op het vergrootglas: het logboek
-      schuift weg, één lade tegelijk.
+   1. Knoppen. Onder het vergrootglas aan de linkerrand een rij knoppen in
+      dezelfde stijl, met een lijnicoon, een licht oranje vlak en een dun fel
+      oranje randje: DS Logboek (klembord) en Service Check (lijst met vinkjes,
+      v1.3.0). Zichtbaar bij een open order (visit-tabje met cijfers rechts-
+      boven) of zolang er een weggeschoven paneel is; verborgen als het
+      filterpaneel openstaat.
+   2. Gedrag, zoals het filterpaneel. Klik: het paneel schuift uit vanaf de
+      linkerrand en de knoppen rijden mee naar zijn rechterrand (die van het
+      open paneel vormt er een tab mee). Nog een klik: wegschuiven, de inhoud
+      blijft. Een andere knop: wisselen. Het vergrootglas: alles weg. Alleen ×
+      in een paneel sluit het. Oranje stip op het logboek = er wacht een gesprek.
    3. Orderwissel. Basic wisselt van order zonder nieuwe pagina; het logboek
       leest de order maar één keer. Verandert het ordernummer terwijl het
       logboek open is, dan komt er bovenin het paneel een balk met
       "Opnieuw starten" (parkeert eerst als er al iets beantwoord is) of
-      "Negeren". Terug naar de oude order = balk weer weg. */
+      "Negeren". Service Check zoekt opnieuw op als je hem bij een andere order
+      weer opent (of met ↻). */
 (function () {
   'use strict';
 
@@ -38,7 +41,9 @@
   var KNOP_ID = 'ds-logboek-tabknop';
   var BALK_ID = 'ds-logboek-wisselbalk';
   var ORANJE = '#e67e22';
-  var VERSIE = '1.2.7';
+  // Onze eigen elementen: overslaan bij het zoeken naar visit-tabje en vergrootglas.
+  var EIGEN = '#' + KNOP_ID + ', #ds-sc-knop, #ds-sc-paneel, #' + BALK_ID + ', #ds-combi-wrapper';
+  var VERSIE = '1.3.0';
 
   // Diagnose (v1.1.8): in de console (F12, filter "DS Logboek userscript") is te
   // zien óf het script draait en waarom de knop er (niet) staat. Alleen bij een
@@ -49,21 +54,28 @@
 
 
   // ── Code laden (stale-while-revalidate) ──────────────────────
-  var verseCode = null;
-  function leesCache() { try { return localStorage.getItem(CACHE); } catch (e) { return null; } }
-  fetch(SRC + '?t=' + Date.now(), { cache: 'no-store' })
-    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-    .then(function (code) {
-      verseCode = code;
-      if (code && code !== leesCache()) {
-        try { localStorage.setItem(CACHE, code); }
-        catch (e) { try { localStorage.removeItem(CACHE); localStorage.setItem(CACHE, code); } catch (e2) {} }
-      }
-    })
-    .catch(function (e) { console.error('[DS Logboek userscript] ophalen mislukt:', e); });
+  // Bij het laden van de pagina de cache verversen; een klik gebruikt de cache
+  // (synchroon), anders de verse code. Zelfde sleutels als de launcher.
+  function bron(src, cache) {
+    var vers = null;
+    function lees() { try { return localStorage.getItem(cache); } catch (e) { return null; } }
+    fetch(src + '?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function (code) {
+        vers = code;
+        if (code && code !== lees()) {
+          try { localStorage.setItem(cache, code); }
+          catch (e) { try { localStorage.removeItem(cache); localStorage.setItem(cache, code); } catch (e2) {} }
+        }
+      })
+      .catch(function (e) { console.error('[DS Logboek userscript] ophalen mislukt (' + src.split('/').pop() + '):', e); });
+    return function () { return lees() || vers; };
+  }
+  var logboekCode = bron(SRC, CACHE);
+  var scCode = bron('https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/extern/service-check.js', 'ds_servicecheck_cache');
 
   function startLogboek() {
-    var code = leesCache() || verseCode;
+    var code = logboekCode();
     if (!code) { alert('DS Logboek is nog niet geladen. Probeer het over een paar seconden opnieuw.'); return; }
     verbergBalk();
     try { eval(code); }
@@ -84,7 +96,7 @@
     });
     while (walker.nextNode()) {
       var el = walker.currentNode.parentElement;
-      if (!el || el.closest('#' + KNOP_ID + ', #' + BALK_ID + ', #ds-combi-wrapper')) continue;
+      if (!el || el.closest(EIGEN)) continue;
       var r = el.getBoundingClientRect();
       if (r.width === 0 || r.top > 320 || r.left < window.innerWidth * 0.4) continue;
       if (r.top < besteTop) { besteTop = r.top; beste = el; }
@@ -117,7 +129,7 @@
     var els = document.querySelectorAll('a, li, span, div');
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
-      if (el.children.length > 1 || el.id === KNOP_ID || el.textContent.trim() !== naam) continue;
+      if (el.children.length > 1 || el.closest(EIGEN) || el.textContent.trim() !== naam) continue;
       var r = el.getBoundingClientRect();
       if (r.width === 0 || r.top > 320 || r.left > window.innerWidth * 0.5) continue;
       return el.closest('[role="tab"], .dx-tab, li') || el.parentElement;
@@ -154,7 +166,7 @@
     var punten = loepPunten();
     for (var i = 0; i < punten.length; i++) {
       var el = document.elementFromPoint(punten[i][0], punten[i][1]);
-      if (!el || el.closest('#' + KNOP_ID + ', #ds-combi-wrapper')) continue;
+      if (!el || el.closest(EIGEN)) continue;
       var kandidaten = [];
       for (var e = el; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
         var r = e.getBoundingClientRect();
@@ -218,180 +230,211 @@
     console.info('[DS Logboek userscript] onderzoek vergrootglas:\n' + regels.join('\n'));
   }
 
-  // ── Knop: een tweede knop onder het vergrootglas ──────────────
-  // Zelfde maat, rand, achtergrond en icoonkleur als het vergrootglas (computed
-  // style, geen klassen: DireXtion's eigen klikafhandeling grijpt er dan niet op
-  // in), met een klembord als lijnicoon en een licht oranje vlak als eigen accent
-  // (v1.2.4). Net als de knoppen in de linkerbalk van de planningsmodule krijgt
-  // hij een stip als er iets aan de hand is: oranje zolang er een weggeschoven
-  // logboek wacht.
-  // Open: hij vormt een tab met het paneel, zonder rand ertussen.
-  var GAT = 4;                    // ruimte tussen vergrootglas en onze knop (zoals de linkerbalk van de planningsmodule)
+  // ── Laden: knoppen onder het vergrootglas, panelen vanaf de linkerrand ──
+  // Elke lade = één knop in de rij onder het vergrootglas en één paneel dat
+  // vanaf de linkerrand uitschuift, zoals het filterpaneel van DireXtion (v1.3.0:
+  // DS Logboek en Service Check). Eén lade tegelijk: een andere openen, of op
+  // het vergrootglas klikken, schuift de open lade weg. Wegschuiven is niet
+  // sluiten — de inhoud blijft staan; alleen × in het paneel sluit.
+  //
+  // Knoppen: maat, schaduw en hoek van het vergrootglas (computed style, geen
+  // klassen: DireXtion's klikafhandeling grijpt er dan niet op in), een lijn-
+  // icoon, een licht oranje vlak en een dun fel oranje randje als eigen accent.
+  // Staat een paneel open, dan rijden alle knoppen mee naar zijn rechterrand;
+  // die van het open paneel vormt er een tab mee. Zo wissel je zonder eerst te
+  // sluiten. Een oranje stip (alleen het logboek) = er wacht een weggeschoven
+  // gesprek.
+  var GAT = 4;                    // ruimte tussen de knoppen (zoals de linkerbalk van de planningsmodule)
   var LICHT_ORANJE = '#fdf0e4';
-  var RAND_ORANJE = '1px solid #ff8c1a';   // dun, fel oranje randje: valt net wat meer op (v1.2.7)
+  var RAND_ORANJE = '1px solid #ff8c1a';
   var IN_MS = 260, UIT_MS = 200;  // zelfde tempo als het inschuiven in ds-logboek.js
+  var PANEEL_RAND = '1px solid #a9bcd8';
   var loep = null;
-  var verborgen = false;          // logboek bestaat maar is weggeschoven
-  var schuifToken = 0;
 
-  function maakKnop(lp) {
-    var cs = getComputedStyle(lp);
-    var ic = lp.querySelector('svg, img, i, [class*="icon"]');
-    var icH = ic ? Math.round(ic.getBoundingClientRect().height) : 0;
-    if (!(icH >= 10 && icH <= 32)) icH = 18;
-    var k = document.createElement('div');
-    k.id = KNOP_ID;
-    k.title = 'DS Logboek';
-    k.setAttribute('role', 'button');
-    k.innerHTML = '<svg viewBox="0 0 24 24" width="' + icH + '" height="' + icH + '" fill="none" stroke="currentColor" ' +
-      'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-      '<rect x="5" y="4.5" width="14" height="16.5" rx="2"/><rect x="8.5" y="2.5" width="7" height="4" rx="1"/>' +
-      '<path d="M8.5 11h7M8.5 14.5h7M8.5 18h4"/></svg>';
-    var st = k.style;
-    st.position = 'fixed';
-    st.zIndex = '1000';           // boven DireXtion, onder het logboek (999999)
-    st.boxSizing = 'border-box';
-    st.display = 'flex';
-    st.alignItems = 'center';
-    st.justifyContent = 'center';
-    st.color = getComputedStyle(ic || lp).color || '#333333';
-    st.backgroundColor = LICHT_ORANJE;   // eigen accent: licht oranje vlak (v1.2.4)
-    st.boxShadow = cs.boxShadow;
-    ['Top', 'Right', 'Bottom', 'Left'].forEach(function (z) { st['border' + z] = RAND_ORANJE; });
-    st.borderRadius = cs.borderRadius;
-    st.cursor = 'pointer';
-    // Stijl op de linkerrand bewaren: open wordt hij tijdelijk een tab van het paneel.
-    k._rail = { borderTop: st.borderTop, borderRight: st.borderRight, borderBottom: st.borderBottom,
-      borderLeft: st.borderLeft, borderRadius: st.borderRadius, backgroundColor: st.backgroundColor };
-    var stip = document.createElement('span');
-    stip.className = 'ds-logboek-stip';
-    stip.style.cssText = 'position:absolute;right:3px;bottom:3px;width:8px;height:8px;border-radius:50%;' +
-      'background:#c75f0c;box-shadow:0 0 0 1.5px #fff;display:none;';   // donkerder oranje: zichtbaar op het lichte vlak
-    k.appendChild(stip);
-    k.addEventListener('mouseenter', function () { k.style.backgroundImage = 'linear-gradient(rgba(230,126,34,0.12),rgba(230,126,34,0.12))'; });
-    k.addEventListener('mouseleave', function () { k.style.backgroundImage = 'none'; });
-    ['pointerdown', 'mousedown', 'mouseup', 'click', 'dxclick'].forEach(function (ev) {
-      k.addEventListener(ev, function (e) { e.stopPropagation(); });
-    });
-    k.addEventListener('click', klik);
-    return k;
+  var ICOON = {
+    klembord: '<rect x="5" y="4.5" width="14" height="16.5" rx="2"/><rect x="8.5" y="2.5" width="7" height="4" rx="1"/>' +
+      '<path d="M8.5 11h7M8.5 14.5h7M8.5 18h4"/>',
+    vinklijst: '<path d="M11 6h9M11 12h9M11 18h9"/><path d="M3.5 6l1.6 1.6L8.5 4.2M3.5 12l1.6 1.6l3.4-3.4M3.5 18l1.6 1.6l3.4-3.4"/>'
+  };
+  function svg(naam, maat, kleur) {
+    return '<svg viewBox="0 0 24 24" width="' + maat + '" height="' + maat + '" fill="none" stroke="' + (kleur || 'currentColor') + '" ' +
+      'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICOON[naam] + '</svg>';
   }
+
+  var LADEN = [];
+  var LOGBOEK = { id: 'logboek', knopId: KNOP_ID, titel: 'DS Logboek', icoon: 'klembord', stip: true,
+    paneel: wrapperNu, start: startLogboek, verborgen: false, token: 0 };
+  var SC = { id: 'servicecheck', knopId: 'ds-sc-knop', titel: 'Service Check', icoon: 'vinklijst', stip: false,
+    paneel: scPaneelNu, start: startServiceCheck, verborgen: false, token: 0 };
+  LADEN.push(LOGBOEK, SC);
 
   function wrapperNu() {
     var a = window.__dsLogboek;
     return a && a.wrapper && a.wrapper.isConnected ? a.wrapper : null;
   }
+  function scPaneelNu() { var p = document.getElementById('ds-sc-paneel'); return p && p.isConnected ? p : null; }
 
-  // Dicht: onder het vergrootglas. Open: tegen de rechterbovenhoek van het
-  // paneel, zoals het vergrootglas bij een open filterpaneel. Tijdens het
-  // schuiven rijdt hij mee met de rand en stopt hij bij de linkerrand.
-  function plaatsKnop(k) {
-    if (!loep || !loep.isConnected) return;
-    var rl = loep.getBoundingClientRect();
-    var left = rl.left, top = rl.bottom + GAT, vast = false, rand = '';
-    var w = wrapperNu();
-    if (w && w.style.visibility !== 'hidden') {
-      var rw = w.getBoundingClientRect();
-      if (rw.right - 1 > left) {
-        left = rw.right - 1; top = rw.top; vast = true;
-        rand = RAND_ORANJE;
-      }
+  function maakKnop(l, lp) {
+    var cs = getComputedStyle(lp);
+    var ic = lp.querySelector('svg, img, i, [class*="icon"]');
+    var icH = ic ? Math.round(ic.getBoundingClientRect().height) : 0;
+    if (!(icH >= 10 && icH <= 32)) icH = 18;
+    var k = document.createElement('div');
+    k.id = l.knopId;
+    k.title = l.titel;
+    k.setAttribute('role', 'button');
+    k.innerHTML = svg(l.icoon, icH);
+    var st = k.style;
+    st.position = 'fixed';
+    st.zIndex = '1000';           // boven DireXtion, onder de panelen
+    st.boxSizing = 'border-box';
+    st.display = 'flex';
+    st.alignItems = 'center';
+    st.justifyContent = 'center';
+    st.color = getComputedStyle(ic || lp).color || '#333333';
+    st.backgroundColor = LICHT_ORANJE;
+    st.boxShadow = cs.boxShadow;
+    ['Top', 'Right', 'Bottom', 'Left'].forEach(function (z) { st['border' + z] = RAND_ORANJE; });
+    st.borderRadius = cs.borderRadius;
+    st.cursor = 'pointer';
+    k._hoek = cs.borderRadius;
+    if (l.stip) {
+      var stip = document.createElement('span');
+      stip.className = 'ds-logboek-stip';
+      stip.style.cssText = 'position:absolute;right:3px;bottom:3px;width:8px;height:8px;border-radius:50%;' +
+        'background:#c75f0c;box-shadow:0 0 0 1.5px #fff;display:none;';
+      k.appendChild(stip);
     }
-    // Vast aan het paneel: geen linkerrand, en boven het paneel (z-index) zodat
-    // hij diens rechterrand over zijn hoogte afdekt — een tab. Het oranje randje
-    // blijft, ook als tab.
-    var rs = k._rail || {};
-    k.style.borderTop = vast ? rand : rs.borderTop;
-    k.style.borderRight = vast ? rand : rs.borderRight;
-    k.style.borderBottom = vast ? rand : rs.borderBottom;
-    k.style.borderLeft = vast ? '0' : rs.borderLeft;
-    k.style.borderRadius = vast ? '0' : rs.borderRadius;
-    k.style.backgroundColor = LICHT_ORANJE;
-    k.style.zIndex = vast ? '1000000' : '1000';
-    var stip = k.querySelector('.ds-logboek-stip');
-    if (stip) stip.style.display = (w && verborgen) ? 'block' : 'none';
-    k.title = (w && verborgen) ? 'DS Logboek — gesprek staat klaar' : 'DS Logboek';
-    k.style.left = Math.round(left) + 'px';
-    k.style.top = Math.round(top) + 'px';
-    k.style.width = Math.round(rl.width) + 'px';
-    k.style.height = Math.round(rl.height) + 'px';
+    k.addEventListener('mouseenter', function () { k.style.backgroundImage = 'linear-gradient(rgba(230,126,34,0.12),rgba(230,126,34,0.12))'; });
+    k.addEventListener('mouseleave', function () { k.style.backgroundImage = 'none'; });
+    ['pointerdown', 'mousedown', 'mouseup', 'click', 'dxclick'].forEach(function (ev) {
+      k.addEventListener(ev, function (e) { e.stopPropagation(); });
+    });
+    k.addEventListener('click', function () { klik(l); });
+    return k;
   }
 
-  // De knop een tijdje elk beeld volgen (tijdens het schuiven).
+  // Het paneel waar de knoppen langs rijden: het zichtbare (ook tijdens het
+  // wegschuiven). Bij wisselen schuift er één weg en één in: dan het nieuwe.
+  function randPaneel() {
+    var zichtbaar = LADEN.filter(function (l) { var p = l.paneel(); return p && p.style.visibility !== 'hidden'; });
+    var nieuw = zichtbaar.filter(function (l) { return !l.verborgen; })[0];
+    return nieuw || zichtbaar[0] || null;
+  }
+
+  function plaatsKnoppen() {
+    if (!loep || !loep.isConnected) return;
+    var rl = loep.getBoundingClientRect();
+    var rp = randPaneel(), rw = rp ? rp.paneel().getBoundingClientRect() : null;
+    LADEN.forEach(function (l, i) {
+      var k = document.getElementById(l.knopId);
+      if (!k) return;
+      var left = rl.left, top = rl.bottom + GAT + i * (rl.height + GAT);
+      var langs = !!(rw && rw.right - 1 > left);
+      if (langs) left = rw.right - 1;
+      var tab = langs && rp === l;   // de knop van het open paneel: een tab, zonder linkerrand
+      k.style.borderLeft = tab ? '0' : RAND_ORANJE;
+      k.style.borderRadius = langs ? '0' : k._hoek;
+      k.style.zIndex = langs ? '1000000' : '1000';
+      var p = l.paneel();
+      var wacht = l.stip && p && l.verborgen;
+      var stip = k.querySelector('.ds-logboek-stip');
+      if (stip) stip.style.display = wacht ? 'block' : 'none';
+      k.title = wacht ? l.titel + ' — gesprek staat klaar' : l.titel;
+      k.style.left = Math.round(left) + 'px';
+      k.style.top = Math.round(top) + 'px';
+      k.style.width = Math.round(rl.width) + 'px';
+      k.style.height = Math.round(rl.height) + 'px';
+    });
+  }
+
+  // De knoppen een tijdje elk beeld volgen (tijdens het schuiven).
   function volg(ms) {
     var eind = performance.now() + ms;
     (function stap() {
-      var k = document.getElementById(KNOP_ID);
-      if (k) plaatsKnop(k);
+      plaatsKnoppen();
       if (performance.now() < eind) requestAnimationFrame(stap);
     })();
-    setTimeout(function () { var k = document.getElementById(KNOP_ID); if (k) plaatsKnop(k); }, ms + 20);
+    setTimeout(plaatsKnoppen, ms + 20);
   }
 
   function zonderBeweging() {
     try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
   }
 
-  // Wegschuiven, niet sluiten: het gesprek blijft staan (zoals de ingevulde
-  // velden van het filterpaneel). Alleen × in het logboek beëindigt het.
-  function verberg(w) {
-    var t = ++schuifToken;
-    verborgen = true;
-    var r = w.getBoundingClientRect();
-    w.style.transition = zonderBeweging() ? 'none' : 'transform ' + UIT_MS + 'ms cubic-bezier(0.4, 0, 1, 1)';
-    w.style.transform = 'translateX(' + -(Math.round(r.right) + 12) + 'px)';
-    w.style.pointerEvents = 'none';
-    setTimeout(function () { if (t === schuifToken) w.style.visibility = 'hidden'; }, UIT_MS + 20);
+  function verberg(l) {
+    var p = l.paneel();
+    if (!p) return;
+    var t = ++l.token;
+    l.verborgen = true;
+    var r = p.getBoundingClientRect();
+    p.style.transition = zonderBeweging() ? 'none' : 'transform ' + UIT_MS + 'ms cubic-bezier(0.4, 0, 1, 1)';
+    p.style.transform = 'translateX(' + -(Math.round(r.right) + 12) + 'px)';
+    p.style.pointerEvents = 'none';
+    setTimeout(function () { if (t === l.token && p.isConnected) p.style.visibility = 'hidden'; }, UIT_MS + 20);
     volg(UIT_MS + 60);
   }
 
-  function toon(w) {
-    ++schuifToken;
-    verborgen = false;
-    w.style.visibility = '';
-    w.style.pointerEvents = '';
-    w.style.transition = zonderBeweging() ? 'none' : 'transform ' + IN_MS + 'ms cubic-bezier(0.2, 0, 0, 1)';
-    w.style.transform = 'translateX(0)';
+  function toon(l) {
+    var p = l.paneel();
+    if (!p) return;
+    ++l.token;
+    l.verborgen = false;
+    p.style.visibility = '';
+    p.style.pointerEvents = '';
+    p.getBoundingClientRect();    // huidige (weggeschoven) stand vastleggen, dan pas de overgang
+    p.style.transition = zonderBeweging() ? 'none' : 'transform ' + IN_MS + 'ms cubic-bezier(0.2, 0, 0, 1)';
+    p.style.transform = 'translateX(0)';
     volg(IN_MS + 60);
   }
 
-  function klik() {
-    var w = wrapperNu();
-    if (!w) { startLogboek(); return; }
-    if (verborgen) toon(w); else verberg(w);
+  function verbergAndere(l) {
+    LADEN.forEach(function (o) { if (o !== l && o.paneel() && !o.verborgen) verberg(o); });
+  }
+
+  function klik(l) {
+    var p = l.paneel();
+    if (!p) { verbergAndere(l); l.start(); return; }
+    if (!l.verborgen) { verberg(l); return; }
+    verbergAndere(l);
+    if (l.bijTonen) l.bijTonen();
+    toon(l);
   }
 
   function zorgVoorKnop() {
-    var k = document.getElementById(KNOP_ID);
-    var w = wrapperNu();
-    if (!w) verborgen = false;
-    // Zichtbaar bij een open order, of als er een (weggeschoven) logboek is.
-    if (!w && !orderTab()) {
+    var panelen = LADEN.some(function (l) { return !!l.paneel(); });
+    LADEN.forEach(function (l) { if (!l.paneel()) l.verborgen = false; });
+    var metOrder = !!orderTab();
+    // Zichtbaar bij een open order, of zolang er een (weggeschoven) paneel is.
+    if (!panelen && !metOrder) {
       toestand('geen knop: geen open order gevonden (visit-tabje met cijfers rechtsboven)');
       stopWachten();
-      if (k) k.remove();
+      LADEN.forEach(function (l) { var k = document.getElementById(l.knopId); if (k) k.remove(); });
       return;
     }
+    var open = LADEN.some(function (l) { return l.paneel() && !l.verborgen; });
     var gevonden = vindLoep();
     if (gevonden) loep = gevonden;
     // Ligt ons eigen paneel er (bij een laag scherm) overheen, dan het oude houden.
-    else if (!(loep && loep.isConnected && w && !verborgen)) loep = null;
+    else if (!(loep && loep.isConnected && open)) loep = null;
     if (!loep) {
       toestand('geen knop: vergrootglas linksboven niet gevonden (of het filterpaneel staat open)');
-      if (k) k.style.display = 'none';
+      LADEN.forEach(function (l) { var k = document.getElementById(l.knopId); if (k) k.style.display = 'none'; });
       wachtOpLoep();
       return;
     }
-    if (!k) { k = maakKnop(loep); document.body.appendChild(k); }
-    k.style.display = 'flex';
-    plaatsKnop(k);
-    toestand('knop staat er (order ' + huidigeOrder() + ')');
+    LADEN.forEach(function (l) {
+      var k = document.getElementById(l.knopId);
+      if (!k) { k = maakKnop(l, loep); document.body.appendChild(k); }
+      k.style.display = (metOrder || l.paneel()) ? 'flex' : 'none';
+    });
+    plaatsKnoppen();
+    toestand('knoppen staan er (order ' + huidigeOrder() + ')');
   }
 
   // Filterpaneel dicht = vaak alleen een stijlwijziging, geen nieuwe elementen,
   // dus de MutationObserver ziet het niet. Zolang het vergrootglas weg is (en er
-  // een order open staat) elke 400 ms kijken of het terug is (v1.2.6). Goedkoop:
-  // een handvol elementFromPoint-aanroepen rond de onthouden tab.
+  // een order open staat) elke 400 ms kijken of het terug is (v1.2.6).
   var loepPoll = null;
   function wachtOpLoep() {
     if (loepPoll) return;
@@ -401,21 +444,21 @@
   }
   function stopWachten() { if (loepPoll) { clearInterval(loepPoll); loepPoll = null; } }
 
-  // ── Plek van het logboek ──────────────────────────────────────
-  // Tegen de linkerrand, met de bovenkant gelijk aan onze knop (het vergrootglas
-  // blijft erboven bereikbaar). Past hij daar niet in de hoogte, dan schuift hij
-  // omhoog. ds-logboek.js schuift hem zelf in (DS_LOGBOEK_SCHUIVEN, v1.47.0).
-  window.DS_LOGBOEK_SCHUIVEN = true;
-  // Op Basic standaard het DireXtion-uiterlijk (logboek v1.48.0). Een eigen
-  // keuze wint: localStorage ds_logboek_thema = 'standaard' geeft het oude terug.
-  window.DS_LOGBOEK_THEMA = 'dirextion';
+  // ── Plek van een paneel ───────────────────────────────────────
+  // Tegen de linkerrand, met de bovenkant gelijk aan de eerste knop (het
+  // vergrootglas blijft erboven bereikbaar). Past hij daar niet in de hoogte,
+  // dan schuift hij omhoog.
+  function paneelTop(h) {
+    if (!loep || !loep.isConnected) loep = vindLoep();
+    if (!loep) return null;
+    var top = Math.round(loep.getBoundingClientRect().bottom + GAT);
+    if (h && top + h > window.innerHeight - 8) top = Math.max(8, Math.round(window.innerHeight - 8 - h));
+    return top;
+  }
 
   function plaatsPaneel(w) {
-    if (!loep || !loep.isConnected) loep = vindLoep();
-    if (!loep) return;
-    var top = Math.round(loep.getBoundingClientRect().bottom + GAT);
-    var h = w.getBoundingClientRect().height;
-    if (top + h > window.innerHeight - 8) top = Math.max(8, Math.round(window.innerHeight - 8 - h));
+    var top = paneelTop(w.getBoundingClientRect().height);
+    if (top === null) return;
     w.style.left = '0px';
     w.style.bottom = 'auto';
     w.style.top = top + 'px';
@@ -424,25 +467,31 @@
     w.style.borderBottomLeftRadius = '0';
   }
 
+  // ── Lade 1: DS Logboek ────────────────────────────────────────
+  // ds-logboek.js schuift zichzelf in (DS_LOGBOEK_SCHUIVEN, v1.47.0) en krijgt op
+  // Basic standaard het DireXtion-uiterlijk (DS_LOGBOEK_THEMA, v1.48.0; een eigen
+  // keuze in localStorage ds_logboek_thema wint).
+  window.DS_LOGBOEK_SCHUIVEN = true;
+  window.DS_LOGBOEK_THEMA = 'dirextion';
+
   var laatsteWrapper = null;
   window.DS_LOGBOEK_PLEK = function (w, ifr) {
     laatsteWrapper = w;
     // Ook als het logboek met de bookmarklet of de launcher gestart is.
     openOrder = huidigeOrder();
     genegeerd = '';
-    verborgen = false;
+    LOGBOEK.verborgen = false;
+    verbergAndere(LOGBOEK);
     plaatsPaneel(w);
     // Hoogte wisselt met de S/M/L-knop in het logboek: opnieuw passen.
     if (window.ResizeObserver) new ResizeObserver(function () {
       if (!w.isConnected) return;
       plaatsPaneel(w);
-      var k = document.getElementById(KNOP_ID);
-      if (k) plaatsKnop(k);
+      plaatsKnoppen();
     }).observe(w);
     volg(IN_MS + 450);   // inschuiven in ds-logboek.js (met vangnet tot 410 ms)
     // × en loggen gebeuren ín het logboek (eigen iframe-document), dus daar
-    // meeluisteren: na elke klik de knop een tijdje laten meerijden met de rand,
-    // anders bleef hij staan tot de MutationObserver het weg zijn opmerkte (v1.2.5).
+    // meeluisteren: na elke klik de knoppen een tijdje laten meerijden (v1.2.5).
     try {
       var idoc = ifr && (ifr.contentDocument || ifr.contentWindow.document);
       if (idoc) idoc.addEventListener('click', function () {
@@ -452,12 +501,150 @@
     } catch (e) {}
   };
 
-  window.addEventListener('resize', function () { var w = wrapperNu(); if (w) plaatsPaneel(w); zorgVoorKnop(); });
-  // Klik op het vergrootglas terwijl het logboek open is: logboek weg, zodat het
-  // filterpaneel er niet onder valt. Eén lade tegelijk.
+  // ── Lade 2: Service Check ─────────────────────────────────────
+  // De Service Check van David (extern/service-check.js, origineel in
+  // ~/Documents/Tool David) draait ongewijzigd, met dezelfde cache als de
+  // launcher. Hij leest het product uit de order en laat het Tampermonkey-script
+  // "Coolblue Service Check" de Coolblue-pagina ophalen (data-svc-helper). Zijn
+  // blauwe kader (#cb-svc-box, of #cb-svc-pick bij meer producten) wordt zodra
+  // het verschijnt in ons paneel gezet en met CSS ontdaan van kop, positie en
+  // schaduw; de statusregel uit die kop komt in onze kop. Ook een Service Check
+  // die via de launcher of de bladwijzer start, komt zo in het paneel.
+  // Afhankelijk van de opbouw van dat kader: eerste kind = kop, [data-body],
+  // [data-status]. Verandert David die, dan hier aanpassen.
+  var scOrder = '';
+
+  function scStijl() {
+    if (document.getElementById('ds-sc-stijl')) return;
+    var font = '';
+    try { font = getComputedStyle(document.body).fontFamily.replace(/[<>{}]/g, ''); } catch (e) {}
+    var P = '#ds-sc-paneel', I = '#ds-sc-inhoud';
+    var css = [
+      P + '{position:fixed;left:0;width:360px;background:#fff;border:' + PANEEL_RAND + ';border-left:0;box-shadow:2px 2px 10px rgba(0,0,0,0.15);' +
+        'z-index:999998;display:flex;flex-direction:column;box-sizing:border-box;font-family:' + (font || '"Segoe UI",Arial,sans-serif') + ';font-size:13px;color:#333333;}',
+      P + ' .ds-sc-kop{display:flex;align-items:center;gap:6px;padding:9px 12px;border-bottom:1px solid #e3e3e3;flex-shrink:0;}',
+      P + ' .ds-sc-titel{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:#333333;padding-bottom:3px;border-bottom:2px solid #e67e22;white-space:nowrap;}',
+      P + ' .ds-sc-status{flex:1;min-width:0;margin-left:6px;color:#666666;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+      P + ' .ds-sc-knopje{background:#fff;border:1px solid #cccccc;border-radius:2px;color:#666666;font:inherit;font-size:12px;padding:2px 8px;cursor:pointer;}',
+      P + ' .ds-sc-knopje:hover{border-color:#e67e22;color:#e67e22;}',
+      P + ' .ds-sc-sluit{background:none;border:none;color:#999999;font-size:16px;line-height:1;cursor:pointer;padding:0 2px 0 4px;font-weight:300;}',
+      P + ' .ds-sc-sluit:hover{color:#333333;}',
+      I + '{overflow:auto;flex:1;min-height:0;}',
+      I + ' .ds-sc-melding{padding:12px;color:#666666;line-height:1.5;}',
+      // Het kader van de Service Check: geen eigen positie, kop, schaduw of hoeken.
+      I + ' #cb-svc-box,' + I + ' #cb-svc-pick{position:static !important;top:auto !important;right:auto !important;width:auto !important;' +
+        'max-height:none !important;overflow:visible !important;box-shadow:none !important;border-radius:0 !important;background:transparent !important;' +
+        'z-index:auto !important;font:inherit !important;color:#333333 !important;}',
+      I + ' #cb-svc-box>div:first-child,' + I + ' #cb-svc-pick>div:first-child{display:none !important;}',
+      I + ' #cb-svc-box [data-body],' + I + ' #cb-svc-pick>div:nth-child(2){display:block !important;padding:12px !important;}',
+      I + ' #cb-svc-box [data-body]>div[style*="border-radius"]{border-radius:2px !important;}'
+    ];
+    var s = document.createElement('style');
+    s.id = 'ds-sc-stijl';
+    s.textContent = css.join('\n');
+    document.head.appendChild(s);
+  }
+
+  function scPaneel() {
+    var p = scPaneelNu();
+    if (p) return p;
+    scStijl();
+    p = document.createElement('div');
+    p.id = 'ds-sc-paneel';
+    p.innerHTML = '<div class="ds-sc-kop"><span class="ds-sc-titel">' + svg('vinklijst', 16, '#333333') + 'Service Check</span>' +
+      '<span class="ds-sc-status"></span>' +
+      '<button type="button" class="ds-sc-knopje" data-opnieuw title="Opnieuw opzoeken">↻</button>' +
+      '<button type="button" class="ds-sc-sluit" data-sluit title="Sluiten">✕</button></div>' +
+      '<div id="ds-sc-inhoud"></div>';
+    p.querySelector('[data-opnieuw]').onclick = function () { draaiServiceCheck(); };
+    p.querySelector('[data-sluit]').onclick = sluitServiceCheck;
+    // Nieuw paneel staat buiten beeld links; toon() schuift hem erin.
+    p.style.transform = 'translateX(-380px)';
+    document.body.appendChild(p);
+    SC.verborgen = true;
+    if (window.ResizeObserver) new ResizeObserver(function () { if (p.isConnected) { plaatsScPaneel(); plaatsKnoppen(); } }).observe(p);
+    plaatsScPaneel();
+    return p;
+  }
+
+  function plaatsScPaneel() {
+    var p = scPaneelNu();
+    if (!p) return;
+    var top = paneelTop(0);
+    if (top === null) return;
+    p.style.top = top + 'px';
+    p.style.maxHeight = Math.max(200, window.innerHeight - top - 8) + 'px';
+  }
+
+  function scMelding(tekst) {
+    var inhoud = document.getElementById('ds-sc-inhoud');
+    if (!inhoud) return;
+    inhoud.innerHTML = '';
+    var m = document.createElement('div');
+    m.className = 'ds-sc-melding';
+    m.textContent = tekst;
+    inhoud.appendChild(m);
+    var st = document.querySelector('#ds-sc-paneel .ds-sc-status');
+    if (st) st.textContent = '';
+  }
+
+  function draaiServiceCheck() {
+    var code = scCode();
+    if (!code) { scMelding('Service Check is nog niet geladen. Probeer het over een paar seconden opnieuw.'); return; }
+    scOrder = huidigeOrder();
+    var helper = document.documentElement.getAttribute('data-svc-helper') === '1';
+    scMelding(helper ? 'Service Check zoekt de services op…'
+      : 'Het Tampermonkey-script "Coolblue Service Check" staat niet aan, dus het resultaat opent in een nieuw tabblad op Coolblue.');
+    try { eval(code); }
+    catch (e) { console.error('[DS Logboek userscript] Service Check gaf een fout:', e); scMelding('Service Check gaf een fout: ' + (e && e.message)); }
+  }
+
+  function startServiceCheck() {
+    var nieuw = !scPaneelNu();
+    scPaneel();
+    verbergAndere(SC);
+    toon(SC);
+    if (nieuw || huidigeOrder() !== scOrder) draaiServiceCheck();
+  }
+  // Weer tonen na wegschuiven: een andere order intussen = opnieuw opzoeken.
+  SC.bijTonen = function () { if (huidigeOrder() !== scOrder) draaiServiceCheck(); };
+
+  function sluitServiceCheck() {
+    var p = scPaneelNu();
+    if (!p) return;
+    verberg(SC);
+    setTimeout(function () { if (p.isConnected) p.remove(); SC.verborgen = false; zorgVoorKnop(); }, UIT_MS + 30);
+  }
+
+  // Het kader van de Service Check in het paneel zetten, zodra het verschijnt
+  // (MutationObserver op de directe kinderen van body: meteen, zonder vertraging).
+  function vangKader(el) {
+    if (!el || (el.id !== 'cb-svc-box' && el.id !== 'cb-svc-pick')) return;
+    if (!scPaneelNu() && !(loep && loep.isConnected)) return;   // geen balk: laat hem staan waar hij staat
+    var p = scPaneel();
+    var inhoud = document.getElementById('ds-sc-inhoud');
+    inhoud.innerHTML = '';
+    inhoud.appendChild(el);
+    var status = el.querySelector('[data-status]');
+    var st = p.querySelector('.ds-sc-status');
+    if (st) st.textContent = status ? status.textContent : '';
+    if (!scOrder) scOrder = huidigeOrder();
+    if (SC.verborgen) { verbergAndere(SC); toon(SC); }
+  }
+  new MutationObserver(function (lijst) {
+    lijst.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, vangKader); });
+  }).observe(document.body, { childList: true });
+
+  // ── Algemeen ──────────────────────────────────────────────────
+  window.addEventListener('resize', function () {
+    var w = wrapperNu(); if (w) plaatsPaneel(w);
+    plaatsScPaneel();
+    zorgVoorKnop();
+  });
+  // Klik op het vergrootglas terwijl een paneel open is: dat paneel weg, zodat
+  // het filterpaneel er niet onder valt. Eén lade tegelijk.
   document.addEventListener('click', function (e) {
-    var w = wrapperNu();
-    if (w && !verborgen && loep && loep.contains(e.target)) verberg(w);
+    if (loep && loep.contains(e.target)) verbergAndere(null);
     setTimeout(zorgVoorKnop, 300);
   }, true);
   document.addEventListener('keyup', function () { setTimeout(zorgVoorKnop, 300); }, true);
@@ -520,9 +707,8 @@
     // vertraging hieronder (v1.2.5).
     if (laatsteWrapper && !laatsteWrapper.isConnected) {
       laatsteWrapper = null;
-      verborgen = false;
-      var k = document.getElementById(KNOP_ID);
-      if (k) plaatsKnop(k);
+      LOGBOEK.verborgen = false;
+      plaatsKnoppen();
     }
     if (timer) return;
     timer = setTimeout(function () { timer = null; zorgVoorKnop(); controleerWissel(); }, 250);
