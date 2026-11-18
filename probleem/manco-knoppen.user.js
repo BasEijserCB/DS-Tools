@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         DS Tools — Manco-knoppen bij CBF-orders
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.0.0
-// @description  Knoppen "Manco: niet aangekomen" en "Manco: retour magazijn" naast het visit-tabje van een CBF-order in DireXtion Basic: één klik opent Probleem toevoegen en vult Moment en Probleem type in. Opslaan doe je zelf.
+// @version      1.1.0
+// @description  Knoppen "Manco: niet aangekomen" en "Manco: retour magazijn" rechts in de tabrij van een CBF-order in DireXtion Basic: één klik opent Probleem toevoegen en vult Moment en Probleem type in. Opslaan doe je zelf.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
 // @match        https://coolblue.dirextion.nl/BASIC/*
@@ -27,11 +27,12 @@
       (onzichtbaar gemaakt zolang het script ermee bezig is);
    2. klik op "Probleem toevoegen" → DevExtreme-popup met Moment *,
       Probleem type *, Opmerking, Interne opmerking, Annuleren / Opslaan;
-   3. Moment = de optie die met "5." begint, Probleem type = de optie met de
+   3. Moment = de optie die met "6." begint ("6. Tijdens Beladen"; v1.0.0 koos
+      ten onrechte 5), Probleem type = de optie met de
       reden in de tekst (bij meer dan één: die met "manco"). Gezet via de API
       van het veld (option('value')), niet door in de lijst te klikken.
       Probleem type wordt opnieuw opgezocht na het zetten van Moment: die
-      lijst lijkt van Moment af te hangen (na Moment 5 stonden er alleen
+      lijst lijkt van Moment af te hangen (onder Moment 6 staan er alleen
       manco-typen in).
    Opmerking en Interne opmerking blijven leeg.
 
@@ -41,17 +42,22 @@
 
    Basic wisselt van order zonder nieuwe pagina; een MutationObserver kijkt
    bij elke wijziging of er (nog) een CBF-order open staat. De knoppen zweven
-   (position:fixed op body, buiten de tabbalk van DevExpress) rechts van het
-   tabje en schuiven mee bij scrollen, venstergrootte en elke seconde. */
+   (position:fixed op body, buiten de tabbalk van DevExpress) rechts in de
+   tabrij, gelijk met Same day / Next day (v1.1.0; v1.0.0 stond direct naast
+   het tabje), en schuiven mee bij scrollen, venstergrootte en elke seconde. */
 (function () {
   'use strict';
 
-  var VERSIE = '1.0.0';
+  var VERSIE = '1.1.0';
   var ID = 'ds-manco-knoppen';
   var LOG = '[DS Manco userscript]';
-  var MOMENT = /^\s*5\s*[.)]/;          // "5. …" — de optie die DS kiest
+  var MOMENT_NR = '6';                  // "6. Tijdens Beladen"
+  var MOMENT = new RegExp('^\\s*' + MOMENT_NR + '\\s*[.)]');
+  // Probleem typen onder Moment 6 (screenshot 18-11-2026), elk "Visit manco, kan
+  // niet geleverd worden - …": beschadigd · kwijt in bus · kwijt op depot ·
+  // niet ontvangen · retour magazijn. "Niet aangekomen" heet daar "niet ontvangen".
   var KNOPPEN = [
-    { naam: 'Manco: niet aangekomen', reden: 'niet aangekomen' },
+    { naam: 'Manco: niet aangekomen', reden: 'niet ontvangen' },
     { naam: 'Manco: retour magazijn', reden: 'retour magazijn' }
   ];
 
@@ -240,7 +246,7 @@
     var items = await opties(inst);
     logLijst('Moment', inst, items);
     var keuze = items.filter(function (x) { return MOMENT.test(tekstVan(inst, x)); })[0];
-    if (!keuze) throw new Error('geen Moment die met "5." begint');
+    if (!keuze) throw new Error('geen Moment die met "' + MOMENT_NR + '." begint');
     zet(inst, keuze);
     return tekstVan(inst, keuze);
   }
@@ -323,7 +329,7 @@
         'cursor:pointer;box-shadow:none;text-transform:none;}' +
       '#' + ID + ' button:hover{background:#fbe1c8;}' +
       '#' + ID + ' button:disabled{opacity:.55;cursor:default;}' +
-      '#' + ID + ' .melding{font-size:11px;color:#666;}' +
+      '#' + ID + ' .melding{font-size:11px;color:#666;max-width:340px;overflow:hidden;text-overflow:ellipsis;}' +
       '#' + ID + ' .melding.goed{color:#155724;}' +
       '#' + ID + ' .melding.fout{color:#E50000;}' +
       // Het menu niet laten flitsen terwijl het script erdoorheen klikt.
@@ -348,27 +354,52 @@
     ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu', 'touchstart', 'touchend'].forEach(function (t) {
       groep.addEventListener(t, function (e) { e.stopPropagation(); });
     });
+    // Melding links van de knoppen: de groep staat rechts uitgelijnd, dus de
+    // knoppen blijven op hun plek en de tekst groeit naar links.
+    var m = document.createElement('span');
+    m.className = 'melding';
+    groep.appendChild(m);
     KNOPPEN.forEach(function (item) {
       var b = document.createElement('button');
       b.type = 'button';
       b.textContent = item.naam;
-      b.title = 'Probleem toevoegen met Moment 5 en Probleem type "' + item.reden + '".\nOpslaan doe je zelf.';
+      b.title = 'Probleem toevoegen met Moment ' + MOMENT_NR + ' en Probleem type "' + item.reden + '".\nOpslaan doe je zelf.';
       b.addEventListener('click', function (e) { e.preventDefault(); klik(item, groep); });
       groep.appendChild(b);
     });
-    var m = document.createElement('span');
-    m.className = 'melding';
-    groep.appendChild(m);
     return groep;
   }
 
-  // ── Plaatsen: rechts van het visit-tabje ─────────────────────
-  var RUIMTE = 8;
+  // ── Plaatsen: rechts in de tabrij, zoals Same day / Next day ──
+  // De rechterkant van de knoppen:
+  //  1. gelijk met de Same day / Next day-knoppen (opmerking-knoppen.user.js)
+  //     als die in hetzelfde paneel staan — dan staan ze recht onder elkaar;
+  //  2. anders VAN_RECHTS binnen de rechterrand van het tabblad-besturingselement
+  //     (li#Visits_AT0 → #Visits; terugval: de ul van de tabs). 35px is waar
+  //     Same day / Next day op de echte pagina eindigen (pijltje + 10px).
+  var RUIMTE = 8, VAN_RECHTS = 35;
+  function rechterkant(tab) {
+    var kand = [document.getElementById(tab.id.replace(/_A?T\d+$/, '')), tab.parentElement].filter(zichtbaar);
+    var best = null;
+    kand.forEach(function (el) { var r = el.getBoundingClientRect(); if (!best || r.right > best.r.right) best = { el: el, r: r }; });
+    if (!best) return null;
+    var cs = getComputedStyle(best.el);
+    var binnen = best.r.right - (parseFloat(cs.borderRightWidth) || 0) - (parseFloat(cs.paddingRight) || 0);
+    var op = document.getElementById('ds-opmerking-knoppen');
+    if (zichtbaar(op)) {
+      var o = op.getBoundingClientRect();
+      if (o.width && o.right <= binnen + 1 && o.right > binnen - 120) return o.right;
+    }
+    return binnen - VAN_RECHTS;
+  }
   function plaats() {
     var g = document.getElementById(ID), tab = visitTab();
     if (!g || !tab) return;
     var r = tab.getBoundingClientRect(), gb = g.getBoundingClientRect();
-    var links = r.right + RUIMTE, boven = r.top + (r.height - gb.height) / 2;
+    var rk = rechterkant(tab);
+    var links = rk != null ? rk - gb.width : r.right + RUIMTE;
+    if (links < r.right + RUIMTE) links = r.right + RUIMTE;   // nooit over het tabje
+    var boven = r.top + (r.height - gb.height) / 2;
     // Past het niet rechts in beeld, dan onder het tabje.
     if (links + gb.width > document.documentElement.clientWidth - RUIMTE) { links = r.left; boven = r.bottom + 4; }
     g.style.left = Math.round(links) + 'px';
