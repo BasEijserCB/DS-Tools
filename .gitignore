@@ -60,6 +60,10 @@
 /opmerking/*
 !/opmerking/opmerking-knoppen.user.js
 
+!/probleem/
+/probleem/*
+!/probleem/manco-knoppen.user.js
+
 !/sophia/
 /sophia/*
 !/sophia/sft-autopilot.user.js
