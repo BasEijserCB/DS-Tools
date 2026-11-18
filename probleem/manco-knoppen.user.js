@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         DS Tools — Manco-knoppen bij CBF-orders
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.1.0
-// @description  Knoppen "Manco: niet aangekomen" en "Manco: retour magazijn" rechts in de tabrij van een CBF-order in DireXtion Basic: één klik opent Probleem toevoegen en vult Moment en Probleem type in. Opslaan doe je zelf.
+// @version      1.1.1
+// @description  Knoppen "Manco: niet ontvangen" en "Manco: retour magazijn" rechts in de tabrij van een CBF-order in DireXtion Basic: één klik opent Probleem toevoegen en vult Moment en Probleem type in. Opslaan doe je zelf.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
 // @match        https://coolblue.dirextion.nl/BASIC/*
@@ -48,16 +48,16 @@
 (function () {
   'use strict';
 
-  var VERSIE = '1.1.0';
+  var VERSIE = '1.1.1';
   var ID = 'ds-manco-knoppen';
   var LOG = '[DS Manco userscript]';
   var MOMENT_NR = '6';                  // "6. Tijdens Beladen"
   var MOMENT = new RegExp('^\\s*' + MOMENT_NR + '\\s*[.)]');
   // Probleem typen onder Moment 6 (screenshot 18-11-2026), elk "Visit manco, kan
   // niet geleverd worden - …": beschadigd · kwijt in bus · kwijt op depot ·
-  // niet ontvangen · retour magazijn. "Niet aangekomen" heet daar "niet ontvangen".
+  // niet ontvangen · retour magazijn. (De eerste knop heette tot v1.1.0 "niet aangekomen".)
   var KNOPPEN = [
-    { naam: 'Manco: niet aangekomen', reden: 'niet ontvangen' },
+    { naam: 'Manco: niet ontvangen', reden: 'niet ontvangen' },
     { naam: 'Manco: retour magazijn', reden: 'retour magazijn' }
   ];
 
