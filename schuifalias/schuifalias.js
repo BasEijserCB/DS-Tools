@@ -35,11 +35,22 @@
       de nieuwe alias niet.
    Aan het eind staat het depotfilter weer op wat het was, of op het depot
    waar nog een keuze open staat.
+
+   AUTO-RELOAD (v1.1.1)
+   Tijdens een ronde zet de tool de auto-reload van DireXtion uit en daarna
+   terug zoals hij stond. De planmonitor luistert naar de plan- en
+   verstuurtaken van álle depots (125 groepen) en doet met auto-reload aan
+   bij elke afgeronde taak TourGrid.Refresh() — ook bij onze eigen
+   "Verstuur naar mobiel apparaat". Die callbacks komen tussen onze
+   depotwissels en paginawissels door: rustig() wacht dan steeds tot ~6 s,
+   en metCallback() kan op de verkeerde callback afgaan. Sinds de
+   Tampermonkey-starter van de Planning-combi (15-11-2026) staat
+   auto-reload bij elke paginalading aan.
    ───────────────────────────────────────────────────────────── */
 (function () {
   'use strict';
 
-  var SCHUIFALIAS_VERSION = '1.1.0';
+  var SCHUIFALIAS_VERSION = '1.1.1';
 
   // /exec-URL van de Schuifritten web-app. Leeg = de tool meldt dat en doet niets.
   // Toegang "Iedereen binnen Coolblue": de <script>-tag stuurt de Google-login mee.
@@ -118,6 +129,30 @@
       });
     }
     return kijk();
+  }
+
+  // Auto-reload van de planmonitor (de knop die planning-instellingen.js aanzet).
+  // Met auto-reload aan publiceert DireXtion "planning.done" bij elke afgeronde plan- of
+  // verstuurtaak van welk depot dan ook, en de Rit overzicht doet daarop Refresh().
+  // Tijdens een ronde uit, daarna terug zoals hij stond.
+  var autoReloadWas = null;
+  function planMonitor() {
+    try {
+      var el = document.querySelector('[data-bind*="toggleAutoReload"]');
+      var root = el && window.ko ? window.ko.contextFor(el).$root : null;
+      return root && typeof root.autoReload === 'function' ? root : null;
+    } catch (e) { return null; }
+  }
+  function pauzeerAutoReload() {
+    var pm = planMonitor();
+    if (!pm || autoReloadWas !== null) return;
+    autoReloadWas = !!pm.autoReload();
+    if (autoReloadWas) { pm.autoReload(false); console.log('[Schuifalias] auto-reload gepauzeerd tijdens de ronde'); }
+  }
+  function herstelAutoReload() {
+    var pm = planMonitor(), was = autoReloadWas;
+    autoReloadWas = null;
+    if (pm && was && !pm.autoReload()) { pm.autoReload(true); console.log('[Schuifalias] auto-reload weer aan'); }
   }
 
   function kolom(veld) {
@@ -301,6 +336,7 @@
   function controleer() {
     if (bezig) return;
     bezig = true;
+    pauzeerAutoReload();
     plan = [];
     toon('Gegevens ophalen uit de Schuifritten-sheet…');
     var dag = planDatum();
@@ -331,8 +367,8 @@
       return volgende();
     }).then(function () {
       return terug();
-    }).then(function () { bezig = false; toonPlan(); }, function (e) {
-      bezig = false; console.error('[Schuifalias]', e); toon('⚑ ' + e.message, true);
+    }).then(function () { bezig = false; herstelAutoReload(); toonPlan(); }, function (e) {
+      bezig = false; herstelAutoReload(); console.error('[Schuifalias]', e); toon('⚑ ' + e.message, true);
     });
   }
 
@@ -345,6 +381,7 @@
     var werk = plan.filter(function (p) { return p.item && p.wijzig.some(teOpslaan); });
     if (!werk.length) return;
     bezig = true;
+    pauzeerAutoReload();
     var i = 0;
     function volgende() {
       if (i >= werk.length) return Promise.resolve();
@@ -388,8 +425,8 @@
     volgende().then(function () {
       var open = plan.filter(function (p) { return p.item && p.wijzig.some(openTwijfel); })[0];
       return open ? bekijkStap(open) : terug();
-    }).then(function () { bezig = false; toonPlan(); }, function (e) {
-      bezig = false; console.error('[Schuifalias]', e); toon('⚑ ' + e.message, true);
+    }).then(function () { bezig = false; herstelAutoReload(); toonPlan(); }, function (e) {
+      bezig = false; herstelAutoReload(); console.error('[Schuifalias]', e); toon('⚑ ' + e.message, true);
     });
   }
 
@@ -522,9 +559,10 @@
     var p = plan.filter(function (x) { return x.depot.code === code; })[0];
     if (!p || !p.item) return;
     bezig = true;
+    pauzeerAutoReload();
     toon('Rit overzicht naar ' + p.depot.naar + '…');
-    bekijkStap(p).then(function () { bezig = false; toonPlan(); }, function (e) {
-      bezig = false; toon('⚑ ' + e.message, true);
+    bekijkStap(p).then(function () { bezig = false; herstelAutoReload(); toonPlan(); }, function (e) {
+      bezig = false; herstelAutoReload(); toon('⚑ ' + e.message, true);
     });
   }
 
