@@ -47,6 +47,8 @@
   .hint { font-size: 12px; color: #999999; margin-top: 10px; }
   .waar { font-size: 12px; color: #285dab; white-space: nowrap; }
   @media (max-width: 560px) { .waar { white-space: normal; } }
+  .inst { display: inline-block; background: #0090e3; color: #fff; text-decoration: none; border-radius: 8px; padding: 7px 14px; font-weight: 600; font-size: 13px; white-space: nowrap; }
+  .inst:hover { background: #007bc4; }
 </style>
 </head>
 <body>
@@ -70,7 +72,9 @@
 
   <div class="card">
     <h2>Tampermonkey</h2>
-    <p>Alle Tampermonkey-scripts met installatielink, status en live versie: <a href="../tampermonkey.html">tampermonkey.html</a>.</p>
+    <p><a class="inst" href="https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/launcher/ds-tools-dev.user.js">DS Tools (dev) installeren</a> &nbsp;Eén script voor alle automatische modules, ook die op test. Niet samen met het gewone DS Tools-script.</p>
+    <p>Alles over de scripts (ook Service Check van David en de losse scripts van vroeger): <a href="../tampermonkey.html">tampermonkey.html</a>. Modules aan- of uitzetten voor het team: <a href="beheer.html">beheer.html</a>.</p>
+    <div id="auto-lijst">Laden…</div>
   </div>
 
   <div class="card">
@@ -92,15 +96,22 @@
     window.__dsToolsLijst = null;
     new Function('DS_TOOLS_MODUS', x[0])('lijst');
     var st = (x[1] && x[1].tools) || {};
-    var tools = (window.__dsToolsLijst || []).map(function (t) { t.s = st[t.id] || t.status; return t; })
-      .filter(function (t) { return MODUS === 'dev' || t.s === 'productie'; });
-    document.getElementById('lijst').innerHTML = '<table>' + tools.map(function (t) {
+    function zichtbaar(lijst) {
+      return (lijst || []).map(function (t) { t.s = st[t.id] || t.status; return t; })
+        .filter(function (t) { return MODUS === 'dev' || t.s === 'productie'; });
+    }
+    function rij(t) {
       return '<tr><td class="ic">' + t.icoon + '</td><td><div class="naam">' + esc(t.naam) +
         (t.s === 'test' ? ' <span style="font-size:11px;font-weight:600;color:#856404;background:#fff8e1;border:1px solid #ffc107;border-radius:4px;padding:0 4px;">test</span>' : '') +
         '</div><div class="uitleg">' + esc(t.uitleg) + '</div></td><td class="waar">' + esc(t.waar) + '</td></tr>';
-    }).join('') + '</table>';
+    }
+    document.getElementById('lijst').innerHTML = '<table>' + zichtbaar(window.__dsToolsLijst).map(rij).join('') + '</table>';
+    // Automatische modules van het Tampermonkey-script DS Tools (eigen lijst in launcher.js).
+    var auto = zichtbaar(window.__dsToolsAutoLijst);
+    document.getElementById('auto-lijst').innerHTML = auto.length ? '<table>' + auto.map(rij).join('') + '</table>' : '<p class="uitleg">Nog niets.</p>';
   }).catch(function (e) {
     document.getElementById('lijst').innerHTML = '<div class="melding fout">Lijst laden mislukt: ' + esc(e.message) + '</div>';
+    document.getElementById('auto-lijst').innerHTML = '';
   });
 })();
 </script>

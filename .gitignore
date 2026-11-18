@@ -24,6 +24,8 @@
 !/launcher/status.json
 !/launcher/beheer.html
 !/launcher/install-dev.html
+!/launcher/ds-tools.user.js
+!/launcher/ds-tools-dev.user.js
 
 !/tourtool/
 /tourtool/*

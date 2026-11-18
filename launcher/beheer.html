@@ -18,6 +18,8 @@
   td { padding: 8px 6px; border-top: 1px solid #DDDDDD; vertical-align: middle; }
   tr:first-child td { border-top: none; }
   tr.gewijzigd td { background: #fff8e1; }
+  tr.groep td { padding-top: 18px; font-size: 12px; font-weight: 600; color: #285dab; text-transform: uppercase; letter-spacing: .04em; border-top: none; }
+  tr.groep + tr td { border-top: none; }
   .ic { font-size: 18px; width: 28px; text-align: center; }
   .naam { font-weight: 600; }
   .uitleg { font-size: 12px; color: #999999; }
@@ -46,7 +48,7 @@
 <body>
 <div class="wrap">
   <h1>DS Tools — beheer</h1>
-  <p class="sub">Per tool: <b>productie</b> (iedereen ziet hem in DS Tools) of <b>test</b> (alleen jouw dev-bookmarklet). Een wijziging is binnen ongeveer 5 minuten overal zichtbaar.</p>
+  <p class="sub">Per tool: <b>productie</b> (iedereen ziet hem in DS Tools) of <b>test</b> (alleen jouw dev-bookmarklet). Per automatische module: <b>productie</b> (draait bij iedereen met het Tampermonkey-script DS Tools) of <b>test</b> (alleen DS Tools dev). Een wijziging is binnen ongeveer 5 minuten overal zichtbaar.</p>
 
   <div class="card">
     <h2>Tools</h2>
@@ -97,7 +99,9 @@
         window.__dsToolsLijst = null;
         new Function('DS_TOOLS_MODUS', code)('lijst');
         if (!window.__dsToolsLijst) throw new Error('launcher.js gaf geen lijst terug');
-        tools = window.__dsToolsLijst;
+        // Automatische modules (Tampermonkey-script DS Tools) staan in een eigen lijst;
+        // hier horen ze erbij, anders zou opslaan hun status uit status.json laten vallen.
+        tools = window.__dsToolsLijst.concat((window.__dsToolsAutoLijst || []).map(function (m) { m.auto = true; return m; }));
       });
   }
 
@@ -119,10 +123,12 @@
   function huidig(t) { return opgeslagen[t.id] || t.status; }
 
   function teken() {
-    $('tools').innerHTML = '<table>' + tools.map(function (t) {
+    $('tools').innerHTML = '<table>' + tools.map(function (t, i) {
       var s = gekozen[t.id] || huidig(t);
       var gewijzigd = s !== huidig(t);
-      return '<tr' + (gewijzigd ? ' class="gewijzigd"' : '') + '>' +
+      var kop = t.auto && !(tools[i - 1] && tools[i - 1].auto)
+        ? '<tr class="groep"><td colspan="4">Automatisch — Tampermonkey-script DS Tools</td></tr>' : '';
+      return kop + '<tr' + (gewijzigd ? ' class="gewijzigd"' : '') + '>' +
         '<td class="ic">' + t.icoon + '</td>' +
         '<td><div class="naam">' + esc(t.naam) + '</div><div class="uitleg">' + esc(t.uitleg) + '</div></td>' +
         '<td class="id">' + esc(t.id) + (opgeslagen[t.id] ? '' : '<br>standaard uit code') + '</td>' +

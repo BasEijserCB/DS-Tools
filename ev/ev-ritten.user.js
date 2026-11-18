@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — EV-ritten (automatisch)
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.0.2
+// @version      1.0.3
 // @description  Zet in de Ritmonitor vanzelf een ⚡ EV bij ritten met een elektrische bus.
 // @match        https://coolblue.dirextion.nl/ModuleTourMonitor*
 // @match        https://coolblue.dirextion.nl/moduletourmonitor*
@@ -25,6 +25,11 @@
    launcher op EV-ritten klikt, zet hem dus uit — en met nog een klik weer aan. */
 (function () {
   'use strict';
+
+  // DS Tools: dit script is ook een module van het Tampermonkey-script DS Tools
+  // (launcher.js, lijst AUTO). Nooit dubbel: wie het eerst draait claimt de plek.
+  if (window.__dsAuto && window.__dsAuto['auto-ev-ritten']) return;
+  (window.__dsAuto = window.__dsAuto || {})['auto-ev-ritten'] = true;
 
   var SRC = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/ev/ev-ritten.js';
   var CACHE = 'ds_ev_ritten_cache';

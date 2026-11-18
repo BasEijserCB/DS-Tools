@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Plakken in de Order wizard
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.2.5
+// @version      1.2.6
 // @description  Zet in de Order wizard (service-order) een knop "Plakken uit DS Logboek" onder Order sjabloon.
 // @match        https://coolblue.dirextion.nl/Import/*
 // @match        https://coolblue.dirextion.nl/import/*
@@ -28,11 +28,16 @@
 (function () {
   'use strict';
 
+  // DS Tools: dit script is ook een module van het Tampermonkey-script DS Tools
+  // (launcher.js, lijst AUTO). Nooit dubbel: wie het eerst draait claimt de plek.
+  if (window.__dsAuto && window.__dsAuto['auto-plakken']) return;
+  (window.__dsAuto = window.__dsAuto || {})['auto-plakken'] = true;
+
   var SRC = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/paste-bookmarklet.js';
   var CACHE = 'ds_paste_prod_cache';
   var MARKER = 'ds-plakken-blok';
   var GELDIG_MS = 5 * 60 * 1000; // gelijk aan paste-bookmarklet.js
-  var VERSIE = '1.2.5';
+  var VERSIE = '1.2.6';
 
   // Diagnose (v1.2.4): in de console (F12) is te zien óf het script draait en
   // waar het eventueel stopt. Elke reden wordt één keer gemeld.

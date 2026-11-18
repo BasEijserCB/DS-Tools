@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek in DireXtion Basic
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.3.1
+// @version      1.3.2
 // @description  Knoppen DS Logboek en Service Check onder het vergrootglas; hun panelen schuiven uit vanaf de linkerrand, zoals het filterpaneel.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
@@ -36,6 +36,11 @@
 (function () {
   'use strict';
 
+  // DS Tools: dit script is ook een module van het Tampermonkey-script DS Tools
+  // (launcher.js, lijst AUTO). Nooit dubbel: wie het eerst draait claimt de plek.
+  if (window.__dsAuto && window.__dsAuto['auto-logboek-basic']) return;
+  (window.__dsAuto = window.__dsAuto || {})['auto-logboek-basic'] = true;
+
   var SRC = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/ds-logboek.js';
   var CACHE = 'ds_app_prod_cache';
   var KNOP_ID = 'ds-logboek-tabknop';
@@ -43,7 +48,7 @@
   var ORANJE = '#e67e22';
   // Onze eigen elementen: overslaan bij het zoeken naar visit-tabje en vergrootglas.
   var EIGEN = '#' + KNOP_ID + ', #ds-sc-knop, #ds-sc-paneel, #' + BALK_ID + ', #ds-combi-wrapper';
-  var VERSIE = '1.3.1';
+  var VERSIE = '1.3.2';
 
   // Diagnose (v1.1.8): in de console (F12, filter "DS Logboek userscript") is te
   // zien óf het script draait en waarom de knop er (niet) staat. Alleen bij een

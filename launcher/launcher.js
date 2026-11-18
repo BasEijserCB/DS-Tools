@@ -20,9 +20,13 @@
   Sneltoetsen zolang de balk open is: 1–9 start de zoveelste tool in de balk, Esc
   sluit. Niet op AppStream: daar typ je in Vanessa. Na het starten van een tool gaat
   de balk dicht; nog een klik op de bookmarklet ook.
+
+  Automatisch (v1.5.0): het Tampermonkey-script DS Tools (launcher/ds-tools.user.js,
+  dev: ds-tools-dev.user.js) laadt dit bestand met DS_TOOLS_MODUS = 'auto' of
+  'auto-dev'. Dan geen balk, maar de modules uit AUTO die bij deze pagina horen.
 */
 (function () {
-  var LAUNCHER_VERSION = '1.4.0';
+  var LAUNCHER_VERSION = '1.5.0';
   var ID = 'ds-tools-launcher';
   var BASE = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/';
   var BEHEER_URL = 'https://baseijsercb.github.io/DS-Tools/launcher/beheer.html';
@@ -41,6 +45,10 @@
   var opCoolblue = /(^|\.)coolblue\.(nl|be|de)$/i.test(host);
   var opSophia = /sophia\.mendixcloud\.com$/i.test(host);
   var opAppStream = /\.appstream2\.[a-z0-9-]+\.aws\.amazon\.com$/i.test(host);
+  // Voor AUTO: precies de pagina's van de oude @match-regels.
+  var opCoolblueDirextion = /^coolblue\.dirextion\.nl$/i.test(host);
+  var opBasic = opCoolblueDirextion && /^\/basic\//i.test(pad);
+  var opImport = opCoolblueDirextion && /^\/import\//i.test(pad);
 
   // id: vast, want status.json verwijst ernaar. status: de standaard als status.json
   // de tool niet noemt of niet te laden is.
@@ -111,10 +119,118 @@
       bestanden: [{ naam: 'Vanessa Deck', cache: 'ds_vanessa_deck_cache', src: 'extern/vanessa-deck.js', versie: /VERSIE\s*=\s*'([^']+)'/ }] },
   ];
 
+  // ── AUTO: modules van het Tampermonkey-script DS Tools ───────────────────────
+  // Starten vanzelf als de pagina opent (modus 'auto'), geen chip in de balk.
+  // Zelfde regels als TOOLS: vaste id (status.json verwijst ernaar), status
+  // productie/test via de beheerpagina. Het team-script draait alleen productie,
+  // het dev-script ook test.
+  // src: het bestaande .user.js-bestand. De kopregels zijn commentaar, dus het is
+  // gewoon uit te voeren; wie het losse script nog heeft, houdt het werkend. Elk
+  // script claimt zichzelf in window.__dsAuto[id], zodat het nooit dubbel draait
+  // (los script + DS Tools). Eigen cache key per module, stil bijgewerkt.
+  // tool: de tool uit TOOLS waarvan dit de automatische variant is (alleen ter info).
+  // Een module toevoegen = een regel hier + de claim bovenin het script; zie CLAUDE.md.
+  var AUTO = [
+    { id: 'auto-planning-combi', status: 'productie', tool: 'planning-combi', waar: 'Planningsmodule', naam: 'Planning-combi', icoon: '⚙️',
+      uitleg: 'Vaste planningsinstellingen en het echte laadvermogen, zonder klik',
+      hier: opCoolblueDirextion && opPlanning, src: 'laadvermogen/planning-combi.user.js', cache: 'ds_auto_planning_combi' },
+    { id: 'auto-ev-ritten', status: 'test', tool: 'ev-ritten', waar: 'Ritmonitor', naam: 'EV-ritten', icoon: '⚡',
+      uitleg: '⚡ EV bij ritten met een elektrische bus, zonder klik',
+      hier: opCoolblueDirextion && opRitmonitor, src: 'ev/ev-ritten.user.js', cache: 'ds_auto_ev_ritten' },
+    { id: 'auto-logboek-basic', status: 'test', tool: 'ds-logboek', waar: 'Order in Basic', naam: 'DS Logboek in Basic', icoon: '📋',
+      uitleg: 'Knoppen DS Logboek en Service Check onder het vergrootglas (Service Check vraagt ook het script van David)',
+      hier: opBasic, src: 'logboek/logboek-basic.user.js', cache: 'ds_auto_logboek_basic' },
+    { id: 'auto-opmerking', status: 'test', waar: 'Order in Basic', naam: 'Same day / Next day in Opmerkingen', icoon: '🎉',
+      uitleg: 'Knoppen in de balk Opmerkingen: één klik voegt de vaste opmerking toe en slaat op',
+      hier: opBasic, src: 'opmerking/opmerking-knoppen.user.js', cache: 'ds_auto_opmerking' },
+    { id: 'auto-manco', status: 'test', waar: 'Order in Basic (CBF)', naam: 'Manco-knoppen bij CBF-orders', icoon: '📦',
+      uitleg: 'Vult Probleem toevoegen in (manco: niet ontvangen / retour magazijn); opslaan doe je zelf',
+      hier: opBasic, src: 'probleem/manco-knoppen.user.js', cache: 'ds_auto_manco' },
+    { id: 'auto-logboek-portal', status: 'test', tool: 'ds-logboek', waar: 'Consumer portal', naam: 'DS Logboek op de consumer portal', icoon: '📋',
+      uitleg: 'Opent DS Logboek vanzelf naast de pagina',
+      hier: opPortal, src: 'logboek/logboek-portal.user.js', cache: 'ds_auto_logboek_portal' },
+    { id: 'auto-plakken', status: 'test', tool: 'ds-plakken', waar: 'Import · Order wizard', naam: 'DS Plakken in de Order wizard', icoon: '🚀',
+      uitleg: 'Knop "Plakken uit DS Logboek" in de Order wizard',
+      hier: opImport, src: 'plakken/ds-plakken.user.js', cache: 'ds_auto_plakken' },
+    { id: 'auto-sft-autopilot', status: 'test', tool: 'sft-autopilot', waar: 'Sophia', naam: 'SFT autopilot op Cpc repair approval', icoon: '🤖',
+      uitleg: 'Opent het SFT autopilot-overlay vanzelf; Start autopilot blijft een klik',
+      hier: opSophia, src: 'sophia/sft-autopilot.user.js', cache: 'ds_auto_sft_autopilot' },
+  ];
+
   // Beheerpagina: alleen de lijst, geen balk.
   if (MODUS === 'lijst') {
     window.__dsToolsLijst = TOOLS.map(function (t) { return { id: t.id, naam: t.naam, icoon: t.icoon, uitleg: t.uitleg, waar: t.waar, status: t.status }; });
+    // Apart, zodat pagina's die alleen tools tonen (index, handleiding) niets merken.
+    window.__dsToolsAutoLijst = AUTO.map(function (m) { return { id: m.id, naam: m.naam, icoon: m.icoon, uitleg: m.uitleg, waar: m.waar, status: m.status, tool: m.tool || '', src: m.src }; });
     return;
+  }
+
+  // ── Modus 'auto' / 'auto-dev': het Tampermonkey-script DS Tools ──────────────
+  // (Merkteken voor dat script: DS_TOOLS_AUTO_V1 — het draait geen gecachete
+  // launcher zonder deze tekst, want een oudere launcher zou hier de balk tonen.)
+  if (MODUS === 'auto' || MODUS === 'auto-dev') {
+    startAuto(MODUS === 'auto-dev');
+    return;
+  }
+
+  // Wacht op de verse status.json (max. 1,5 s, net als de balk), anders de laatst
+  // bekende, anders de standaard uit AUTO. Uitzetten op de beheerpagina werkt zo bij
+  // de eerstvolgende paginalading (na de ~5 minuten CDN).
+  function startAuto(dev) {
+    var LOG = '[DS Tools auto]';
+    // Team- én dev-script tegelijk geïnstalleerd: het eerste wint (installeer er één).
+    if (window.__dsToolsAuto) { console.info(LOG + ' draait al (' + window.__dsToolsAuto.modus + '); dit script slaat over'); return; }
+    window.__dsToolsAuto = { versie: LAUNCHER_VERSION, modus: dev ? 'dev' : 'team', modules: {} };
+    var hier = AUTO.filter(function (m) { return m.hier; });
+    if (!hier.length) return;
+    var cacheTekst = null;
+    try { cacheTekst = localStorage.getItem(STATUS_CACHE); } catch (e) {}
+    var gestart = false;
+    function start(tekst, bron) {
+      if (gestart) return;
+      gestart = true;
+      var st = leesStatus(tekst), regels = [];
+      hier.forEach(function (m) {
+        var s = st[m.id] === 'productie' || st[m.id] === 'test' ? st[m.id] : m.status;
+        if (s !== 'productie' && !dev) { regels.push(m.id + ' uit (test)'); return; }
+        window.__dsToolsAuto.modules[m.id] = s;
+        regels.push(m.id + (s === 'test' ? ' (test)' : ''));
+        draai(m);
+      });
+      console.info(LOG + ' v' + LAUNCHER_VERSION + ' ' + (dev ? 'dev' : 'team') + ', status ' + bron + ': ' + regels.join(' · '));
+    }
+    function terugval() { start(cacheTekst, cacheTekst ? 'uit cache' : 'standaard'); }
+    var timer = setTimeout(terugval, 1500);
+    fetch(BASE + 'launcher/status.json?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.text() : null; })
+      .then(function (t) {
+        clearTimeout(timer);
+        if (!t || !Object.keys(leesStatus(t)).length) return terugval();
+        if (t !== cacheTekst) { try { localStorage.setItem(STATUS_CACHE, t); } catch (e) {} }
+        start(t, 'vers');
+      })
+      .catch(function (e) { clearTimeout(timer); console.warn(LOG + ' status ophalen mislukt:', e); terugval(); });
+
+    // Zelfde geharde stale-while-revalidate als de loaders, maar stil: een nieuwe
+    // versie geldt vanaf de volgende paginalading. Geen cache, of de gecachete
+    // versie faalt: dan meteen de verse.
+    function draai(m) {
+      var cached = null, stuk = 0;
+      try { cached = localStorage.getItem(m.cache); } catch (e) {}
+      if (cached) { try { eval(cached); } catch (e) { stuk = 1; console.error(LOG + ' ' + m.id + ': gecachete versie faalt:', e); } }
+      fetch(BASE + m.src + '?t=' + Date.now(), { cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.text() : null; })
+        .then(function (code) {
+          if (!code || code === cached) { if (stuk) console.error(LOG + ' ' + m.id + ': ook de nieuwste versie faalt'); return; }
+          try { localStorage.setItem(m.cache, code); }
+          catch (e) {
+            try { localStorage.removeItem(m.cache); localStorage.setItem(m.cache, code); }
+            catch (e2) { console.error(LOG + ' ' + m.id + ': opslaan mislukt (localStorage vol?) — draai localStorage.removeItem(\'' + m.cache + '\')'); }
+          }
+          if (!cached || stuk) { try { eval(code); } catch (e) { console.error(LOG + ' ' + m.id + ' faalt:', e); } }
+        })
+        .catch(function (e) { console.error(LOG + ' ' + m.id + ': ophalen mislukt:', e); });
+    }
   }
 
   // Nog een klik op de bookmarklet = balk dicht.

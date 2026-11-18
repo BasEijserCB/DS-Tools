@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — DS Logboek op de consumer portal
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.3.0
+// @version      1.3.1
 // @description  Opent DS Logboek vanzelf op de consumer portal, in de lege linkermarge naast de pagina.
 // @match        https://coolbluebezorgt.dirextion.nl/*
 // @grant        none
@@ -32,6 +32,11 @@
    opent hem opnieuw (keuze A, 15-11-2026). */
 (function () {
   'use strict';
+
+  // DS Tools: dit script is ook een module van het Tampermonkey-script DS Tools
+  // (launcher.js, lijst AUTO). Nooit dubbel: wie het eerst draait claimt de plek.
+  if (window.__dsAuto && window.__dsAuto['auto-logboek-portal']) return;
+  (window.__dsAuto = window.__dsAuto || {})['auto-logboek-portal'] = true;
 
   var SRC = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/ds-logboek.js';
   var CACHE = 'ds_app_prod_cache';

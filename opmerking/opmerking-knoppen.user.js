@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — Same day / Next day in Opmerkingen
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.1.1
+// @version      1.1.2
 // @description  Knoppen "Same day" en "Next day" in de balk Opmerkingen van een order in DireXtion Basic: één klik voegt de vaste opmerking toe en slaat op.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
@@ -35,7 +35,12 @@
 (function () {
   'use strict';
 
-  var VERSIE = '1.1.1';
+  // DS Tools: dit script is ook een module van het Tampermonkey-script DS Tools
+  // (launcher.js, lijst AUTO). Nooit dubbel: wie het eerst draait claimt de plek.
+  if (window.__dsAuto && window.__dsAuto['auto-opmerking']) return;
+  (window.__dsAuto = window.__dsAuto || {})['auto-opmerking'] = true;
+
+  var VERSIE = '1.1.2';
   var ID = 'ds-opmerking-knoppen';
   var TEKSTEN = [
     { naam: 'Same day', tekst: 'Wordt al opgelost, via nieuw bezoek van bezorger(s) op dezelfde dag' },

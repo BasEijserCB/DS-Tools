@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SFT autopilot — vanzelf op Cpc repair approval
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.0.0
+// @version      1.0.1
 // @description  Opent het overlay van de SFT autopilot zodra Cpc repair → Approval in beeld komt. Start autopilot blijft een klik.
 // @match        https://sophia.mendixcloud.com/*
 // @grant        none
@@ -33,6 +33,11 @@
    dan zou de autopilot zijn enkele flow op die case starten. */
 (function () {
   'use strict';
+
+  // DS Tools: dit script is ook een module van het Tampermonkey-script DS Tools
+  // (launcher.js, lijst AUTO). Nooit dubbel: wie het eerst draait claimt de plek.
+  if (window.__dsAuto && window.__dsAuto['auto-sft-autopilot']) return;
+  (window.__dsAuto = window.__dsAuto || {})['auto-sft-autopilot'] = true;
 
   var U = 'https://script.google.com/a/macros/coolblue.nl/s/AKfycbzvJcH6rRJNkWjepNzg6Ohuua0zNU95s31cBBY5XdlT5wxJkGaiOZGnMY0YSM1vBAjdmw/exec';
   var CACHE = 'sft_p_code_cache';

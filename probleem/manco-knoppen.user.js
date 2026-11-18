@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — Manco-knoppen bij CBF-orders
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.1.1
+// @version      1.1.2
 // @description  Knoppen "Manco: niet ontvangen" en "Manco: retour magazijn" rechts in de tabrij van een CBF-order in DireXtion Basic: één klik opent Probleem toevoegen en vult Moment en Probleem type in. Opslaan doe je zelf.
 // @match        https://coolblue.dirextion.nl/Basic/*
 // @match        https://coolblue.dirextion.nl/basic/*
@@ -48,7 +48,12 @@
 (function () {
   'use strict';
 
-  var VERSIE = '1.1.1';
+  // DS Tools: dit script is ook een module van het Tampermonkey-script DS Tools
+  // (launcher.js, lijst AUTO). Nooit dubbel: wie het eerst draait claimt de plek.
+  if (window.__dsAuto && window.__dsAuto['auto-manco']) return;
+  (window.__dsAuto = window.__dsAuto || {})['auto-manco'] = true;
+
+  var VERSIE = '1.1.2';
   var ID = 'ds-manco-knoppen';
   var LOG = '[DS Manco userscript]';
   var MOMENT_NR = '6';                  // "6. Tijdens Beladen"

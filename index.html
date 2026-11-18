@@ -46,6 +46,8 @@
   .bm-zone .bm { font-size: 16px; padding: 12px 24px; cursor: grab; }
   .hint { font-size: 12px; color: #999999; margin-top: 10px; }
   .waar { font-size: 12px; color: #285dab; white-space: nowrap; }
+  .inst { display: inline-block; background: #0090e3; color: #fff; text-decoration: none; border-radius: 8px; padding: 7px 14px; font-weight: 600; font-size: 13px; white-space: nowrap; }
+  .inst:hover { background: #007bc4; }
   @media (max-width: 560px) { .waar { white-space: normal; } }
 </style>
 </head>
@@ -81,6 +83,15 @@
   </div>
 
   <div class="card">
+    <h2>Automatisch, met Tampermonkey</h2>
+    <p>Een paar tools starten ook vanzelf als je de pagina opent, zonder klik op de bladwijzer. Daarvoor is één script voor de extensie <b>Tampermonkey</b> (<a href="https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo">Chrome Web Store</a>; heb je het Service Check-script, dan heb je Tampermonkey al).</p>
+    <p><a class="inst" href="https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/launcher/ds-tools.user.js">DS Tools installeren</a> &nbsp;Tampermonkey toont de code: klik daar op <b>Installeren</b> en herlaad de pagina.</p>
+    <p>Je installeert het één keer. Welke tools automatisch starten regelen wij, en nieuwe komen er vanzelf bij. Nu:</p>
+    <div id="auto-lijst">Laden…</div>
+    <p class="hint">Had je al een los Tampermonkey-script van ons, zoals Planning-combi? Dat mag weg (Tampermonkey-icoon → Dashboard); het draait nooit dubbel met DS Tools. Doet DS Tools niets, kijk dan in <code>chrome://extensions</code> → Tampermonkey → Details: <b>Toegang tot site</b> op <i>Op alle sites</i> en <b>Gebruikersscripts toestaan</b> aan.</p>
+  </div>
+
+  <div class="card">
     <h2>Losse bladwijzers</h2>
     <p>Heb je nog losse bladwijzers voor DS Logboek, DS Plakken, Planning-combi of een andere tool? Die kun je weghalen; ze blijven ook werken als je ze houdt. De oude installatiepagina met de losse knoppen staat op <a href="install.html">install.html</a>.</p>
   </div>
@@ -98,15 +109,22 @@
     window.__dsToolsLijst = null;
     new Function('DS_TOOLS_MODUS', x[0])('lijst');
     var st = (x[1] && x[1].tools) || {};
-    var tools = (window.__dsToolsLijst || []).map(function (t) { t.s = st[t.id] || t.status; return t; })
-      .filter(function (t) { return MODUS === 'dev' || t.s === 'productie'; });
-    document.getElementById('lijst').innerHTML = '<table>' + tools.map(function (t) {
+    function zichtbaar(lijst) {
+      return (lijst || []).map(function (t) { t.s = st[t.id] || t.status; return t; })
+        .filter(function (t) { return MODUS === 'dev' || t.s === 'productie'; });
+    }
+    function rij(t) {
       return '<tr><td class="ic">' + t.icoon + '</td><td><div class="naam">' + esc(t.naam) +
         (t.s === 'test' ? ' <span style="font-size:11px;font-weight:600;color:#856404;background:#fff8e1;border:1px solid #ffc107;border-radius:4px;padding:0 4px;">test</span>' : '') +
         '</div><div class="uitleg">' + esc(t.uitleg) + '</div></td><td class="waar">' + esc(t.waar) + '</td></tr>';
-    }).join('') + '</table>';
+    }
+    document.getElementById('lijst').innerHTML = '<table>' + zichtbaar(window.__dsToolsLijst).map(rij).join('') + '</table>';
+    // Automatische modules van het Tampermonkey-script DS Tools (eigen lijst in launcher.js).
+    var auto = zichtbaar(window.__dsToolsAutoLijst);
+    document.getElementById('auto-lijst').innerHTML = auto.length ? '<table>' + auto.map(rij).join('') + '</table>' : '<p class="uitleg">Nog niets.</p>';
   }).catch(function (e) {
     document.getElementById('lijst').innerHTML = '<div class="melding fout">Lijst laden mislukt: ' + esc(e.message) + '</div>';
+    document.getElementById('auto-lijst').innerHTML = '';
   });
 })();
 </script>

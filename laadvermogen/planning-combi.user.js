@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DS Tools — Planning-combi (automatisch)
 // @namespace    https://baseijsercb.github.io/DS-Tools/
-// @version      1.4.3
+// @version      1.4.4
 // @description  Zet in de planningsmodule vanzelf de vaste instellingen en het echte laadvermogen uit Fleetio.
 // @match        https://coolblue.dirextion.nl/ModulePlanningBeta*
 // @match        https://coolblue.dirextion.nl/moduleplanningbeta*
@@ -59,6 +59,11 @@
    bookmarklet of in de launcher daarna doet geen kwaad. */
 (function () {
   'use strict';
+
+  // DS Tools: dit script is ook een module van het Tampermonkey-script DS Tools
+  // (launcher.js, lijst AUTO). Nooit dubbel: wie het eerst draait claimt de plek.
+  if (window.__dsAuto && window.__dsAuto['auto-planning-combi']) return;
+  (window.__dsAuto = window.__dsAuto || {})['auto-planning-combi'] = true;
 
   var BASE = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/laadvermogen/';
   var BESTANDEN = [

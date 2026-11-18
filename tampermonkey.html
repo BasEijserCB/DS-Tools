@@ -37,6 +37,7 @@
   .inst { display: inline-block; background: #0090e3; color: #fff; text-decoration: none; border-radius: 8px; padding: 7px 14px; font-weight: 600; font-size: 13px; white-space: nowrap; }
   .inst:hover { background: #007bc4; }
   td.knopcel { text-align: right; width: 1%; }
+  .bron { font: 11px ui-monospace, Menlo, monospace; color: #999999; }
   @media (max-width: 560px) {
     .waar, .versie { display: none; }
     .card { padding: 14px 12px; }
@@ -46,101 +47,118 @@
 <body>
 <div class="wrap">
   <h1>🧩 Tampermonkey-scripts</h1>
-  <p class="sub">Scripts die vanzelf starten als je een DireXtion-pagina opent — geen klik op een bladwijzer nodig.</p>
+  <p class="sub">Tools die vanzelf starten als je een pagina opent — geen klik op een bladwijzer nodig.</p>
+
+  <div class="card">
+    <h2>DS Tools — één script voor alles</h2>
+    <p>Eén script voor alle automatische tools van Delivery Support in DireXtion, de consumer portal en Sophia. Het bevat zelf geen tools: bij elke pagina haalt het de nieuwste versies op en start het de modules die bij die pagina horen. Welke modules aan staan, wordt geregeld op de <a href="launcher/beheer.html">beheerpagina</a>. Een nieuwe module of een update komt vanzelf, zonder opnieuw te installeren.</p>
+    <div id="lijst-ds"></div>
+    <p class="uitleg" style="margin-top:10px">Installeer er één: het gewone script draait de modules op <span class="pil productie">productie</span>, het dev-script ook die op <span class="pil test">test</span>.</p>
+  </div>
+
+  <div class="card">
+    <h2>Modules</h2>
+    <p class="uitleg">Live uit <code>launcher/launcher.js</code> (lijst <code>AUTO</code>) en <code>launcher/status.json</code>. Versie = <code>@version</code> van het bronbestand.</p>
+    <div id="modules">Laden…</div>
+  </div>
 
   <div class="card">
     <h2>Installeren</h2>
     <ol>
       <li>Je hebt de extensie <b>Tampermonkey</b> nodig (<a href="https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo">Chrome Web Store</a>). Heb je het Service Check-script al, dan heb je hem.</li>
-      <li>Klik bij een script op <b>Installeren</b>. Tampermonkey opent een scherm met de code; klik daar op <b>Installeren</b>.</li>
-      <li>Herlaad de DireXtion-pagina waar het script voor is.</li>
+      <li>Klik bij <b>DS Tools</b> op <b>Installeren</b>. Tampermonkey opent een scherm met de code; klik daar op <b>Installeren</b>.</li>
+      <li>Herlaad de pagina waar je mee bezig was.</li>
     </ol>
-    <p class="uitleg">Doet een script niets? Ga naar <code>chrome://extensions</code> → Tampermonkey → <b>Details</b> en controleer: de schakelaar staat aan, <b>Toegang tot site</b> staat op <i>Op alle sites</i>, en <b>Gebruikersscripts toestaan</b> staat aan (zie je die optie niet, zet dan rechtsboven <i>Ontwikkelaarsmodus</i> aan).<br>
+    <p class="uitleg">Doet het script niets? Ga naar <code>chrome://extensions</code> → Tampermonkey → <b>Details</b> en controleer: de schakelaar staat aan, <b>Toegang tot site</b> staat op <i>Op alle sites</i>, en <b>Gebruikersscripts toestaan</b> staat aan (zie je die optie niet, zet dan rechtsboven <i>Ontwikkelaarsmodus</i> aan). In de console (filter <code>DS Tools auto</code>) staat per pagina welke modules er draaien.<br>
     Uitzetten of verwijderen: Tampermonkey-icoon → <b>Dashboard</b>.</p>
   </div>
 
   <div class="card">
-    <h2>Scripts</h2>
-    <div id="lijst"></div>
-    <p class="uitleg" style="margin-top:12px">
-      <span class="pil productie">productie</span> voor iedereen ·
-      <span class="pil test">test</span> werkt, wordt nog bekeken ·
-      <span class="pil dev">dev</span> in ontwikkeling, nog niet (volledig) op de echte pagina getest
-    </p>
+    <h2>Coolblue Service Check</h2>
+    <p>Dit script is van David en staat los van DS Tools: het heeft een eigen toestemming nodig om Coolblue-pagina’s op te halen. Hier staat een kopie van de versie die zijn installatiepagina uitdeelt. Heb je het al (geplakt via <i>Een nieuw script maken</i>), dan hoef je niets te doen. Nieuw installeren kan hier; Tampermonkey haalt updates dan van deze kopie.</p>
+    <div id="lijst-extern"></div>
+  </div>
+
+  <div class="card">
+    <h2>Losse scripts van vroeger</h2>
+    <p>Planning-combi, EV-ritten, DS Logboek in Basic en de andere waren eerst elk een eigen script. Ze zijn nu modules van DS Tools. Heb je er nog een, verwijder hem dan (Tampermonkey-icoon → Dashboard) zodra DS Tools erop staat. Tot dan blijft hij werken en updates krijgen, en dubbel draaien kan niet: wie het eerst start, doet het werk.</p>
   </div>
 
   <div class="card">
     <h2>Updates</h2>
     <ul>
-      <li><b>De tool zelf</b> (bijv. DS Logboek) wordt vanzelf bijgewerkt: bij het openen van de pagina opgehaald, de keer daarna actief.</li>
-      <li><b>Het script</b> wordt door Tampermonkey ongeveer één keer per dag gecontroleerd. Meteen bijwerken: klik hier opnieuw op <b>Installeren</b> (Tampermonkey toont dan <b>Bijwerken</b>), of Dashboard → <i>Check for userscript updates</i>.</li>
-      <li>Tot 5 minuten na een wijziging kan GitHub nog de vorige versie geven. Staat er nog het oude versienummer, probeer het dan zo nog eens.</li>
+      <li><b>Modules en tools</b> komen vanzelf: bij het openen van een pagina opgehaald, de keer daarna actief. Een module uitzetten op de beheerpagina werkt vanaf de eerstvolgende paginalading.</li>
+      <li><b>Het script zelf</b> verandert bijna nooit (alleen bij een nieuwe website). Tampermonkey controleert het ongeveer één keer per dag; meteen: Dashboard → <i>Check for userscript updates</i>.</li>
+      <li>Tot 5 minuten na een wijziging kan GitHub nog de vorige versie geven.</li>
     </ul>
-  </div>
-
-  <div class="card">
-    <h2>Coolblue Service Check</h2>
-    <p>Dit script is van David; hier staat een kopie van de versie die zijn installatiepagina uitdeelt. Heb je het al (geplakt via <i>Een nieuw script maken</i>), dan hoef je niets te doen. Nieuw installeren kan hier; Tampermonkey haalt updates dan van deze kopie.</p>
   </div>
 </div>
 <script>
 (function () {
-  // Eén regel per .user.js in de repo. Nieuw script? Hier toevoegen (en in README.md).
-  // Versie en beschrijving komen live uit de kop van het script zelf.
+  // De scripts die je installeert. De modules van DS Tools staan NIET hier maar in
+  // launcher/launcher.js (lijst AUTO); die lijst hieronder komt daar live uit.
   var RAW = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/';
   var SCRIPTS = [
-    { pad: 'laadvermogen/planning-combi.user.js', icoon: '⚙️', naam: 'Planning-combi', status: 'productie', waar: 'Planningsmodule',
-      uitleg: 'Vaste planningsinstellingen en het echte laadvermogen uit Fleetio, vanzelf.' },
+    { groep: 'ds', pad: 'launcher/ds-tools.user.js', icoon: '🧰', naam: 'DS Tools', status: 'productie', waar: 'DireXtion · portal · Sophia',
+      uitleg: 'Alle automatische tools in één script.' },
+    { groep: 'ds', pad: 'launcher/ds-tools-dev.user.js', icoon: '🧪', naam: 'DS Tools (dev)', status: 'dev', waar: 'DireXtion · portal · Sophia',
+      uitleg: 'Ook de modules die nog op test staan. Niet samen met het gewone script.' },
     // Van David: letterlijke kopie van ~/Documents/Tool David/Service_Check_v2.user.js (= wat
     // zijn installatiepagina uitdeelt). Geen @updateURL: Tampermonkey kijkt dan naar het adres
     // waarvan geïnstalleerd is, dus naar deze kopie. Eigen korte uitleg (zijn @description is technisch).
-    { pad: 'extern/service-check.user.js', icoon: '⇢', naam: 'Coolblue Service Check', status: 'productie', waar: 'DireXtion · coolblue.nl/.be/.de',
+    { groep: 'extern', pad: 'extern/service-check.user.js', icoon: '⇢', naam: 'Coolblue Service Check', status: 'productie', waar: 'DireXtion · coolblue.nl/.be/.de',
       uitleg: 'Laat de Service Check-bladwijzer (en de lade in DS Logboek in Basic) het resultaat in DireXtion zelf tonen, in plaats van in een nieuw tabblad.',
       nodig: 'Van David. De eerste keer vraagt Tampermonkey of het Coolblue mag ophalen: kies “Altijd toestaan voor domein” (één keer per land).',
-      eigenUitleg: true },
-    { pad: 'ev/ev-ritten.user.js', icoon: '⚡', naam: 'EV-ritten', status: 'test', waar: 'Ritmonitor',
-      uitleg: '⚡ EV bij ritten met een elektrische bus.' },
-    { pad: 'logboek/logboek-basic.user.js', icoon: '📋', naam: 'DS Logboek in Basic', status: 'dev', waar: 'DireXtion Basic',
-      uitleg: 'Knoppen DS Logboek en Service Check onder het vergrootglas.',
-      nodig: 'Lade Service Check: installeer ook Coolblue Service Check (hierboven).' },
-    { pad: 'opmerking/opmerking-knoppen.user.js', icoon: '🎉', naam: 'Same day / Next day in Opmerkingen', status: 'dev', waar: 'DireXtion Basic',
-      uitleg: 'Knoppen in de balk Opmerkingen: één klik voegt de vaste opmerking toe en slaat op.' },
-    { pad: 'probleem/manco-knoppen.user.js', icoon: '📦', naam: 'Manco-knoppen bij CBF-orders', status: 'dev', waar: 'DireXtion Basic',
-      uitleg: 'Knoppen rechts in de tabrij van een CBF-order: vult Probleem toevoegen in (manco: niet ontvangen / retour magazijn). Opslaan doe je zelf.' },
-    { pad: 'logboek/logboek-portal.user.js', icoon: '📋', naam: 'DS Logboek op de consumer portal', status: 'dev', waar: 'Consumer portal',
-      uitleg: 'Opent DS Logboek vanzelf naast de pagina.' },
-    { pad: 'plakken/ds-plakken.user.js', icoon: '🚀', naam: 'DS Plakken in de Order wizard', status: 'dev', waar: 'Import · Order wizard',
-      uitleg: 'Knop "Plakken uit DS Logboek" in de Order wizard.' },
-    { pad: 'sophia/sft-autopilot.user.js', icoon: '🤖', naam: 'SFT autopilot op Cpc repair approval', status: 'dev', waar: 'Sophia',
-      uitleg: 'Opent het SFT autopilot-overlay vanzelf op Cpc repair → Approval. Start autopilot blijft een klik.' }
+      eigenUitleg: true }
   ];
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-
-  document.getElementById('lijst').innerHTML = '<table>' + SCRIPTS.map(function (s, i) {
-    return '<tr>' +
-      '<td class="ic">' + s.icoon + '</td>' +
-      '<td><div class="naam">' + esc(s.naam) + '<span class="pil ' + s.status + '">' + s.status + '</span></div>' +
-        '<div class="uitleg" id="u' + i + '">' + esc(s.uitleg) + '</div>' +
-        (s.nodig ? '<div class="nodig">' + esc(s.nodig) + '</div>' : '') + '</td>' +
-      '<td class="waar">' + esc(s.waar) + '<div class="versie" id="v' + i + '">&nbsp;</div></td>' +
-      '<td class="knopcel"><a class="inst" href="' + RAW + s.pad + '" title="' + esc(s.pad) + '">Installeren</a></td>' +
-    '</tr>';
-  }).join('') + '</table>';
-
-  // Versie en beschrijving live uit de scriptkop (@version, @description).
-  SCRIPTS.forEach(function (s, i) {
-    fetch(RAW + s.pad + '?t=' + Date.now(), { cache: 'no-store' })
+  function versieUit(pad, vId, uId) {
+    fetch(RAW + pad + '?t=' + Date.now(), { cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
       .then(function (code) {
         var v = code.match(/@version\s+(\S+)/), d = code.match(/@description\s+(.+)/);
-        if (v) document.getElementById('v' + i).textContent = 'v' + v[1];
-        if (d && !s.eigenUitleg) document.getElementById('u' + i).textContent = d[1].trim();
+        if (v) document.getElementById(vId).textContent = 'v' + v[1];
+        if (d && uId) document.getElementById(uId).textContent = d[1].trim();
       })
-      .catch(function (e) {
-        document.getElementById('v' + i).textContent = 'versie onbekend';
-        console.warn('[Tampermonkey-scripts] ' + s.pad + ':', e);
-      });
+      .catch(function (e) { document.getElementById(vId).textContent = 'versie onbekend'; console.warn('[Tampermonkey-scripts] ' + pad + ':', e); });
+  }
+
+  ['ds', 'extern'].forEach(function (groep) {
+    var lijst = SCRIPTS.filter(function (s) { return s.groep === groep; });
+    document.getElementById('lijst-' + groep).innerHTML = '<table>' + lijst.map(function (s) {
+      var i = SCRIPTS.indexOf(s);
+      return '<tr>' +
+        '<td class="ic">' + s.icoon + '</td>' +
+        '<td><div class="naam">' + esc(s.naam) + '<span class="pil ' + s.status + '">' + s.status + '</span></div>' +
+          '<div class="uitleg" id="u' + i + '">' + esc(s.uitleg) + '</div>' +
+          (s.nodig ? '<div class="nodig">' + esc(s.nodig) + '</div>' : '') + '</td>' +
+        '<td class="waar">' + esc(s.waar) + '<div class="versie" id="v' + i + '">&nbsp;</div></td>' +
+        '<td class="knopcel"><a class="inst" href="' + RAW + s.pad + '" title="' + esc(s.pad) + '">Installeren</a></td>' +
+      '</tr>';
+    }).join('') + '</table>';
+    lijst.forEach(function (s) { var i = SCRIPTS.indexOf(s); versieUit(s.pad, 'v' + i, s.eigenUitleg ? null : 'u' + i); });
+  });
+
+  // Modules: live uit launcher.js (modus 'lijst') en status.json, zoals de beheerpagina.
+  Promise.all([
+    fetch(RAW + 'launcher/launcher.js?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }),
+    fetch(RAW + 'launcher/status.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; })
+  ]).then(function (x) {
+    window.__dsToolsAutoLijst = null;
+    new Function('DS_TOOLS_MODUS', x[0])('lijst');
+    var st = (x[1] && x[1].tools) || {};
+    var mods = (window.__dsToolsAutoLijst || []).map(function (m) { m.s = st[m.id] || m.status; return m; });
+    if (!mods.length) { document.getElementById('modules').innerHTML = '<p class="uitleg">Nog geen modules.</p>'; return; }
+    document.getElementById('modules').innerHTML = '<table>' + mods.map(function (m, i) {
+      return '<tr><td class="ic">' + m.icoon + '</td>' +
+        '<td><div class="naam">' + esc(m.naam) + '<span class="pil ' + m.s + '">' + m.s + '</span></div>' +
+          '<div class="uitleg">' + esc(m.uitleg) + '</div><div class="bron">' + esc(m.id) + ' · ' + esc(m.src) + '</div></td>' +
+        '<td class="waar">' + esc(m.waar) + '<div class="versie" id="mv' + i + '">&nbsp;</div></td></tr>';
+    }).join('') + '</table>';
+    mods.forEach(function (m, i) { versieUit(m.src, 'mv' + i, null); });
+  }).catch(function (e) {
+    document.getElementById('modules').innerHTML = '<div class="melding let">Modules laden mislukt: ' + esc(e.message) + '</div>';
   });
 })();
 </script>
