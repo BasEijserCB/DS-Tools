@@ -46,11 +46,21 @@
    en metCallback() kan op de verkeerde callback afgaan. Sinds de
    Tampermonkey-starter van de Planning-combi (15-11-2026) staat
    auto-reload bij elke paginalading aan.
+
+   VORMGEVING EN LADE (v1.2.0)
+   In de stijl van DireXtion, zoals DS Logboek in Basic: lettertype van de
+   pagina, witte knoppen met grijze rand en hoeken van 2px, lichtblauw voor
+   het depot in beeld, DS-oranje als accent. Eén stijlblok (stijl()), geen
+   inline stijlen meer. Met schuifalias/schuifalias-knop.user.js (module
+   auto-schuifalias van DS Tools) staat de tool als knop onder de knoppen
+   links; die zet window.DS_SCHUIFALIAS_HOST en het paneel komt in zijn lade.
+   Via die knop eerst een startscherm; via bookmarklet of launcher meteen
+   controleren, zoals altijd. × schuift de lade weg, de stand blijft.
    ───────────────────────────────────────────────────────────── */
 (function () {
   'use strict';
 
-  var SCHUIFALIAS_VERSION = '1.1.1';
+  var SCHUIFALIAS_VERSION = '1.2.0';
 
   // /exec-URL van de Schuifritten web-app. Leeg = de tool meldt dat en doet niets.
   // Toegang "Iedereen binnen Coolblue": de <script>-tag stuurt de Google-login mee.
@@ -58,6 +68,11 @@
 
   var TIMEOUT_MS = 30000;
   var PANEL_ID = 'schuifalias-panel';
+  // Gastheer (v1.2.0): schuifalias/schuifalias-knop.user.js zet window.DS_SCHUIFALIAS_HOST
+  // = { paneel(): element met id PANEL_ID, toon(), sluit(), startscherm }. Dan komt het
+  // paneel in de lade onder de knoppen links in de planningsmodule. Zonder: eigen paneel
+  // rechtsboven, zoals altijd (bookmarklet, launcher zonder dat script).
+  var HOST = window.DS_SCHUIFALIAS_HOST && typeof window.DS_SCHUIFALIAS_HOST.paneel === 'function' ? window.DS_SCHUIFALIAS_HOST : null;
 
   // ── Hulpjes ───────────────────────────────────────────────────────────────
   function naamNorm(s) {
@@ -521,14 +536,15 @@
         resolve();
       };
       var pnl = paneel();
-      pnl.innerHTML = kop() + '<div style="padding:12px;">' +
-        '<div style="font-weight:600;margin-bottom:6px;">' + esc(p.depot.naar) + ': versturen naar mobiel apparaat</div>' +
-        '<div style="font-size:12px;margin-bottom:8px;">Aangevinkt en "Verstuur naar mobiel apparaat" geopend voor:<br>' +
+      if (HOST) HOST.toon();   // hier moet de gebruiker iets doen
+      pnl.innerHTML = kop() + '<div class="sa-tekst">' +
+        '<div class="sa-depotnaam" style="margin-bottom:6px;">' + esc(p.depot.naar) + ': versturen naar mobiel apparaat</div>' +
+        '<div style="margin-bottom:8px;">Aangevinkt en "Verstuur naar mobiel apparaat" geopend voor:<br>' +
         namen.map(esc).join('<br>') + '</div>' +
-        '<div style="font-size:12px;color:#856404;background:#fff8e1;border-left:3px solid #ffc107;padding:4px 6px;margin-bottom:10px;">' +
-        'Knop "Versturen" niet gevonden. Rond het DireXtion-venster zelf af en klik dan op Verder.</div>' +
-        '<button data-a="verder" style="' + knop(true) + '">Verder</button> ' +
-        '<button data-a="overslaan" style="' + knop(false) + '">Overslaan</button></div>';
+        '<div class="sa-melding" style="margin-bottom:4px;">' +
+        'Knop "Versturen" niet gevonden. Rond het DireXtion-venster zelf af en klik dan op Verder.</div></div>' +
+        '<div class="sa-voet"><button class="sa-knop sa-primair" data-a="verder">Verder</button>' +
+        '<button class="sa-knop" data-a="overslaan">Overslaan</button></div>';
       koppel(pnl);
     });
   }
@@ -586,35 +602,99 @@
   }
 
   // ── Paneel ────────────────────────────────────────────────────────────────
+  // Vormgeving (v1.2.0): in de stijl van DireXtion zelf, zoals DS Logboek in Basic
+  // (thema 'dirextion'): lettertype van de pagina, witte knoppen met grijze rand,
+  // hoeken van 2px, lichtblauw voor wat in beeld is, DS-oranje als accent
+  // (onderlijn van de titel, de opslaanknop, de streep bij het depot in beeld).
+  // Eén stijlblok, alles onder #schuifalias-panel.
+  var ICOON = 'data:image/svg+xml,' + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' " +
+    "stroke='#666666' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z'/>" +
+    "<circle cx='7.5' cy='7.5' r='1.5'/></svg>");
+  function stijl() {
+    if (document.getElementById(PANEL_ID + '-stijl')) return;
+    var font = '';
+    try { font = getComputedStyle(document.body).fontFamily; } catch (e) {}
+    var P = '#' + PANEL_ID;
+    var s = document.createElement('style');
+    s.id = PANEL_ID + '-stijl';
+    s.textContent = [
+      P + '{font-family:' + (font || '"Segoe UI",Arial,sans-serif') + ';font-size:12px;line-height:1.45;color:#333333;text-align:left;}',
+      P + ' *{box-sizing:border-box;}',
+      P + '.sa-los{position:fixed;right:16px;top:70px;z-index:100000;width:400px;max-height:75vh;overflow:auto;background:#fff;border:1px solid #a9bcd8;box-shadow:0 2px 8px rgba(0,0,0,.18);}',
+      P + ' .sa-kop{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#fff;border-bottom:1px solid #e3e3e3;}',
+      P + ' .sa-titel{font-size:13px;font-weight:600;padding-bottom:2px;border-bottom:2px solid #e67e22;white-space:nowrap;}',
+      P + ' .sa-titel::before{content:"";display:inline-block;width:14px;height:14px;margin-right:6px;vertical-align:-2px;background:url("' + ICOON + '") no-repeat center/contain;}',
+      P + ' .sa-versie{color:#999999;font-size:11px;margin-right:6px;}',
+      P + ' .sa-sluit{background:none;border:none;font-size:16px;line-height:1;cursor:pointer;color:#666666;padding:0 2px;}',
+      P + ' .sa-sluit:hover{color:#e67e22;}',
+      P + ' .sa-tekst{padding:10px;}',
+      P + ' .sa-tekst.sa-fout{color:#E50000;}',
+      P + ' .sa-meta{padding:6px 10px;font-size:11px;color:#999999;}',
+      P + ' .sa-blok{margin:0 10px 8px;padding:5px 8px;font-size:12px;border:1px solid #e3e3e3;border-left-width:3px;border-radius:2px;}',
+      P + ' .sa-blok-goed{color:#155724;background:#f3faf4;border-left-color:#00B900;}',
+      P + ' .sa-blok-let{color:#856404;background:#fff8e1;border-left-color:#ffc107;}',
+      P + ' .sa-depot{padding:6px 10px;border-top:1px solid #e3e3e3;}',
+      P + ' .sa-depot.sa-hier{background:#dce8f8;box-shadow:inset 3px 0 0 #e67e22;}',
+      P + ' .sa-depotkop{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:2px;}',
+      P + ' .sa-depotnaam{font-weight:600;}',
+      P + ' .sa-code{color:#999999;font-weight:400;}',
+      P + ' .sa-inbeeld{font-size:11px;color:#666666;}',
+      P + ' .sa-regel{display:block;font-size:12px;margin:1px 0;}',
+      P + ' label.sa-regel{cursor:pointer;}',
+      P + ' .sa-goed{color:#155724;}',
+      P + ' .sa-fout{color:#E50000;}',
+      P + ' .sa-detail{font-size:11px;}',
+      P + ' .sa-melding{font-size:11px;color:#856404;background:#fff8e1;border-left:3px solid #ffc107;padding:3px 6px;margin-top:3px;}',
+      P + ' .sa-voet{padding:8px 10px;border-top:1px solid #e3e3e3;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}',
+      P + ' .sa-hint{color:#856404;}',
+      P + ' .sa-klaar{color:#155724;}',
+      P + ' .sa-knop{font:inherit;font-size:12px;line-height:16px;padding:3px 10px;background:#fff;border:1px solid #cccccc;border-radius:2px;color:#333333;cursor:pointer;}',
+      P + ' .sa-knop:hover{background:#f5f5f5;border-color:#aaaaaa;}',
+      P + ' .sa-knop.sa-primair{background:#e67e22;border-color:#e67e22;color:#fff;font-weight:600;}',
+      P + ' .sa-knop.sa-primair:hover{background:#cf6d17;border-color:#cf6d17;}',
+      P + ' .sa-knop.sa-klein{padding:1px 7px;font-size:11px;}',
+      P + ' input[type=checkbox]{margin:0 6px 0 0;vertical-align:-2px;accent-color:#e67e22;}'
+    ].join('\n');
+    (document.head || document.documentElement).appendChild(s);
+  }
+
+  // Los (bookmarklet, launcher): een eigen paneel rechtsboven. Met een gastheer
+  // (DS_SCHUIFALIAS_HOST, gezet door schuifalias-knop.user.js) komt alles in diens
+  // lade aan de linkerkant van de planningsmodule.
   function paneel() {
+    stijl();
+    if (HOST) return HOST.paneel();
     var p = document.getElementById(PANEL_ID);
     if (p) return p;
     p = document.createElement('div');
     p.id = PANEL_ID;
-    p.style.cssText = 'position:fixed;right:16px;top:70px;z-index:100000;width:380px;max-height:70vh;overflow:auto;' +
-      'background:#fff;border:1px solid #cce9f9;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.25);' +
-      'font:13px "Segoe UI",sans-serif;color:#333;';
+    p.className = 'sa-los';
     document.body.appendChild(p);
     return p;
   }
 
   function kop() {
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #DDDDDD;">' +
-      '<b style="color:#285dab;font-size:14px;">Schuifritten → alias</b>' +
-      '<span><span style="color:#999999;font-size:11px;margin-right:8px;">v' + SCHUIFALIAS_VERSION + '</span>' +
-      '<button data-a="sluit" style="background:none;border:none;font-size:16px;cursor:pointer;color:#333;">×</button></span></div>';
+    return '<div class="sa-kop"><span class="sa-titel">Schuifritten → alias</span>' +
+      '<span><span class="sa-versie">v' + SCHUIFALIAS_VERSION + '</span>' +
+      '<button class="sa-sluit" data-a="sluit" title="' + (HOST ? 'Wegschuiven (blijft bewaard)' : 'Sluiten') + '">×</button></span></div>';
   }
 
   function toon(tekst, fout) {
     var p = paneel();
-    p.innerHTML = kop() + '<div style="padding:12px;' + (fout ? 'color:#E50000;' : '') + '">' + esc(tekst) + '</div>' +
-      (fout ? '<div style="padding:0 12px 12px;"><button data-a="controleer" style="' + knop(false) + '">Opnieuw</button></div>' : '');
+    p.innerHTML = kop() + '<div class="sa-tekst' + (fout ? ' sa-fout' : '') + '">' + esc(tekst) + '</div>' +
+      (fout ? '<div class="sa-voet"><button class="sa-knop" data-a="controleer">Opnieuw</button></div>' : '');
     koppel(p);
   }
 
-  function knop(primair) {
-    return 'padding:6px 12px;border-radius:8px;cursor:pointer;font:13px "Segoe UI",sans-serif;' +
-      (primair ? 'background:#0090e3;color:#fff;border:1px solid #0090e3;' : 'background:#F2F7FC;color:#285dab;border:1px solid #cce9f9;');
+  // Alleen vanuit de knop in de linkerbalk: nog niets doen tot de gebruiker op Controleren klikt.
+  function toonStart() {
+    var p = paneel();
+    p.innerHTML = kop() + '<div class="sa-tekst">Zet de code van het sturende depot achter de alias van elke schuifrit van vandaag ' +
+      '(<b>2M-DETR-04</b> → <b>2M-DETR-04 (DEDU)</b>).</div>' +
+      '<div class="sa-tekst" style="padding-top:0;color:#666666;">Controleren loopt de ontvangende depots langs in de Rit overzicht en laat zien wat er verandert. ' +
+      'Er wordt pas iets opgeslagen als je daarna op opslaan klikt.</div>' +
+      '<div class="sa-voet"><button class="sa-knop sa-primair" data-a="controleer">Controleren</button></div>';
+    koppel(p);
   }
 
   // Statusregel: zijn de aantallen al gecontroleerd met het rittenrapport (Rapport.gs)?
@@ -622,63 +702,59 @@
   function controleRegel() {
     var c = data && data.controle;
     if (!c) return '';
-    var blok = function (kleur, vlak, rand, tekst) {
-      return '<div style="margin:0 12px 8px;padding:6px 8px;font-size:12px;color:' + kleur + ';background:' + vlak +
-        ';border-left:3px solid ' + rand + ';border-radius:0 6px 6px 0;">' + tekst + '</div>';
-    };
+    var blok = function (soort, tekst) { return '<div class="sa-blok sa-blok-' + soort + '">' + tekst + '</div>'; };
     if (c.status === 'gedaan') {
       var delen = [];
       if (c.gebruikt) delen.push(c.gebruikt + ' gebruikt');
       if (c.verlaagd) delen.push(c.verlaagd + ' verlaagd');
       if (c.onduidelijk) delen.push(c.onduidelijk + ' onduidelijk');
-      return blok('#155724', '#d4edda', '#00B900', '✓ Aantallen gecontroleerd met het rittenrapport' +
+      return blok('goed', '✓ Aantallen gecontroleerd met het rittenrapport' +
         (c.tijd ? ' om ' + esc(c.tijd) : '') + (c.ritten ? ' — ' + c.ritten + ' ritten' + (delen.length ? ': ' + delen.join(', ') : '') : '') + '.');
     }
-    if (c.status === 'mislukt') return blok('#856404', '#fff8e1', '#ffc107',
+    if (c.status === 'mislukt') return blok('let',
       '⚠ De rittenrapport-controle is vandaag gestopt zonder aanpassingen. De aantallen zijn zoals gepland, niet gecontroleerd.');
-    if (c.status === 'nog niet') return blok('#856404', '#fff8e1', '#ffc107',
+    if (c.status === 'nog niet') return blok('let',
       '⚠ De rittenrapport-controle heeft vandaag nog niet gedraaid. De aantallen zijn nog niet gecontroleerd.');
-    return blok('#856404', '#fff8e1', '#ffc107', 'Stand van de rittenrapport-controle onbekend' + (c.fout ? ' (' + esc(c.fout) + ')' : '') + '.');
+    return blok('let', 'Stand van de rittenrapport-controle onbekend' + (c.fout ? ' (' + esc(c.fout) + ')' : '') + '.');
   }
 
   function toonPlan() {
     var p = paneel(), h = kop(), open = 0;
-    h += '<div style="padding:8px 12px;font-size:11px;color:#999999;">Sheet ' + esc(data ? data.datum + ', opgehaald ' + data.opgehaald : '') + '</div>';
+    h += '<div class="sa-meta">Sheet ' + esc(data ? data.datum + ', opgehaald ' + data.opgehaald : '') + '</div>';
     h += controleRegel();
-    if (!plan.length) h += '<div style="padding:4px 12px 10px;">Geen schuifritten vandaag.</div>';
+    if (!plan.length) h += '<div class="sa-tekst" style="padding-top:4px;">Geen schuifritten vandaag.</div>';
     plan.forEach(function (d, di) {
       var hier = bekeken === d.depot.code;
-      h += '<div style="padding:6px 12px;border-top:1px solid #F3F3F3;' + (hier ? 'background:#F2F7FC;' : '') + '">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-weight:600;">' + esc(d.depot.naar) +
-        ' <span style="color:#999999;font-weight:400;">' + esc(d.depot.code) + '</span></span>' +
+      h += '<div class="sa-depot' + (hier ? ' sa-hier' : '') + '">' +
+        '<div class="sa-depotkop"><span class="sa-depotnaam">' + esc(d.depot.naar) +
+        ' <span class="sa-code">' + esc(d.depot.code) + '</span></span>' +
         '<span>' +
-        (d.item ? (hier ? '<span style="font-size:11px;color:#285dab;">in beeld</span>'
-          : '<button data-a="bekijk" data-d="' + esc(d.depot.code) + '" style="' + knop(false) + 'padding:2px 8px;font-size:11px;">Bekijk</button>') : '') +
+        (d.item ? (hier ? '<span class="sa-inbeeld">in beeld</span>'
+          : '<button class="sa-knop sa-klein" data-a="bekijk" data-d="' + esc(d.depot.code) + '">Bekijk</button>') : '') +
         '</span></div>';
       d.wijzig.forEach(function (w, wi) {
-        var kleur = w.fout ? '#E50000' : w.klaar ? '#155724' : '#333333';
+        var klasse = w.fout ? ' sa-fout' : w.klaar ? ' sa-goed' : '';
         if (teOpslaan(w)) open++;
         var tekst = esc(w.klaar && w.oud === w.nieuw ? w.nieuw + ' (stond er al)' : w.oud + '  →  ' + w.nieuw);
-        var fout = w.fout ? '<br><span style="font-size:11px;">' + esc(w.fout) + '</span>' : '';
+        var fout = w.fout ? '<br><span class="sa-detail">' + esc(w.fout) + '</span>' : '';
         if (w.twijfel && !w.klaar) {
-          h += '<label style="display:block;font-size:12px;color:' + kleur + ';cursor:pointer;margin:2px 0;">' +
-            '<input type="checkbox" data-a="kies" data-p="' + di + '" data-w="' + wi + '"' + (w.aan ? ' checked' : '') +
-            ' style="margin:0 6px 0 0;vertical-align:-2px;">' + tekst + fout + '</label>';
+          h += '<label class="sa-regel' + klasse + '">' +
+            '<input type="checkbox" data-a="kies" data-p="' + di + '" data-w="' + wi + '"' + (w.aan ? ' checked' : '') + '>' + tekst + fout + '</label>';
         } else {
-          h += '<div style="font-size:12px;color:' + kleur + ';">' + (w.klaar ? '✓ ' : w.fout ? '⚑ ' : '→ ') + tekst + fout + '</div>';
+          h += '<div class="sa-regel' + klasse + '">' + (w.klaar ? '✓ ' : w.fout ? '⚑ ' : '→ ') + tekst + fout + '</div>';
         }
       });
       d.meldingen.forEach(function (m) {
-        h += '<div style="font-size:11px;color:#856404;background:#fff8e1;border-left:3px solid #ffc107;padding:3px 6px;margin-top:3px;">' + esc(m) + '</div>';
+        h += '<div class="sa-melding">' + esc(m) + '</div>';
       });
       h += '</div>';
     });
-    h += '<div style="padding:10px 12px;border-top:1px solid #DDDDDD;display:flex;gap:8px;">' +
-      (open ? '<button data-a="opslaan" style="' + knop(true) + '">' + open + ' alias' + (open === 1 ? '' : 'sen') + ' opslaan</button>'
+    h += '<div class="sa-voet">' +
+      (open ? '<button class="sa-knop sa-primair" data-a="opslaan">' + open + ' alias' + (open === 1 ? '' : 'sen') + ' opslaan</button>'
         : plan.some(function (d) { return d.wijzig.some(openTwijfel); })
-          ? '<span style="color:#856404;align-self:center;font-size:12px;">Vink aan welke rit het is.</span>'
-          : '<span style="color:#155724;align-self:center;">Niets meer te doen.</span>') +
-      '<button data-a="controleer" style="' + knop(false) + '">Opnieuw controleren</button></div>';
+          ? '<span class="sa-hint">Vink aan welke rit het is.</span>'
+          : '<span class="sa-klaar">Niets meer te doen.</span>') +
+      '<button class="sa-knop" data-a="controleer">Opnieuw controleren</button></div>';
     p.innerHTML = h;
     koppel(p);
   }
@@ -686,6 +762,8 @@
   function koppel(p) {
     p.onclick = function (e) {
       var a = e.target.getAttribute && e.target.getAttribute('data-a');
+      // Met een gastheer schuift × de lade weg: de controle, de keuzes en de markering blijven.
+      if (a === 'sluit' && HOST) { HOST.sluit(); return; }
       if (a === 'sluit' && !bezig) { window.__schuifaliasMarkeer = null; markeer(); p.remove(); }
       if (a === 'bekijk') bekijk(e.target.getAttribute('data-d'));
       if ((a === 'verder' || a === 'overslaan') && verderNa) verderNa(a === 'verder');
@@ -733,5 +811,9 @@
     }
   } catch (e) {}
 
-  controleer();
+  // Via de knop in de linkerbalk: eerst het startscherm. Via bookmarklet of launcher
+  // (ook als de lade er is): meteen controleren, zoals altijd.
+  if (HOST) HOST.toon();
+  if (HOST && HOST.startscherm) { HOST.startscherm = false; toonStart(); }
+  else controleer();
 })();

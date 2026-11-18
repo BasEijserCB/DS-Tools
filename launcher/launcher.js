@@ -26,7 +26,7 @@
   'auto-dev'. Dan geen balk, maar de modules uit AUTO die bij deze pagina horen.
 */
 (function () {
-  var LAUNCHER_VERSION = '1.5.0';
+  var LAUNCHER_VERSION = '1.5.1';
   var ID = 'ds-tools-launcher';
   var BASE = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/';
   var BEHEER_URL = 'https://baseijsercb.github.io/DS-Tools/launcher/beheer.html';
@@ -134,6 +134,9 @@
     { id: 'auto-planning-combi', status: 'productie', tool: 'planning-combi', waar: 'Planningsmodule', naam: 'Planning-combi', icoon: '⚙️',
       uitleg: 'Vaste planningsinstellingen en het echte laadvermogen, zonder klik',
       hier: opCoolblueDirextion && opPlanning, src: 'laadvermogen/planning-combi.user.js', cache: 'ds_auto_planning_combi' },
+    { id: 'auto-schuifalias', status: 'test', tool: 'schuifalias', waar: 'Planningsmodule', naam: 'Schuifritten alias in de linkerbalk', icoon: '🔁',
+      uitleg: 'Knop onder de knoppen links; Schuifritten → alias schuift uit als lade, in de stijl van DireXtion',
+      hier: opCoolblueDirextion && opPlanning, src: 'schuifalias/schuifalias-knop.user.js', cache: 'ds_auto_schuifalias' },
     { id: 'auto-ev-ritten', status: 'test', tool: 'ev-ritten', waar: 'Ritmonitor', naam: 'EV-ritten', icoon: '⚡',
       uitleg: '⚡ EV bij ritten met een elektrische bus, zonder klik',
       hier: opCoolblueDirextion && opRitmonitor, src: 'ev/ev-ritten.user.js', cache: 'ds_auto_ev_ritten' },

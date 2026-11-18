@@ -42,6 +42,7 @@
 !/schuifalias/
 /schuifalias/*
 !/schuifalias/schuifalias.js
+!/schuifalias/schuifalias-knop.user.js
 !/schuifalias/install-schuifalias.html
 
 !/ev/
