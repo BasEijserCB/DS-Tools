@@ -39,6 +39,8 @@
   .fout { background: #fff0f0; color: #E50000; }
   .let { background: #fff8e1; color: #856404; }
   .rij { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  details { margin: 6px 0 12px; font-size: 13px; }
+  summary { cursor: pointer; color: #0090e3; }
   .bm { display: inline-block; background: #ff6600; color: #fff; text-decoration: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; }
   ol { margin: 0 0 10px; padding-left: 20px; line-height: 1.6; }
   code { font: 12px ui-monospace, Menlo, monospace; background: #F3F3F3; padding: 1px 4px; border-radius: 4px; }
@@ -48,6 +50,10 @@
 <body>
 <div class="wrap">
   <h1>DS Tools — beheer</h1>
+
+  <div class="card" id="login"><p>Laden…</p></div>
+
+  <div id="app" hidden>
   <p class="sub">Per tool: <b>productie</b> (iedereen ziet hem in DS Tools) of <b>test</b> (alleen jouw dev-bookmarklet). Per automatische module: <b>productie</b> (draait bij iedereen met het Tampermonkey-script DS Tools) of <b>test</b> (alleen DS Tools dev). Een wijziging is binnen ongeveer 5 minuten overal zichtbaar.</p>
 
   <div class="card">
@@ -61,11 +67,12 @@
   </div>
 
   <div class="card">
-    <h2>GitHub-token</h2>
+    <h2>Ingelogd</h2>
     <div id="token"></div>
   </div>
 
   <p class="sub">Dev-bladwijzer installeren: <a href="install-dev.html">install-dev.html</a>.</p>
+  </div>
 </div>
 
 <script>
@@ -184,33 +191,98 @@
       .catch(function (e) { meld('fout', esc(e.message)); teken(); });
   });
 
-  function tekenToken() {
-    if (token()) {
-      $('token').innerHTML = '<p>Er staat een token in deze browser. Alleen daarmee kan deze pagina status.json wijzigen. ' +
-        '<button class="link" id="vergeet">Vergeet token</button></p>';
-      $('vergeet').onclick = function () { try { localStorage.removeItem(TOKEN_KEY); } catch (e) {} tekenToken(); teken(); };
-      return;
-    }
-    $('token').innerHTML =
-      '<p>Opslaan schrijft <code>launcher/status.json</code> in de repo. Daarvoor is een eigen token nodig; hij blijft alleen in deze browser.</p>' +
-      '<ol><li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> → Generate new token.</li>' +
-      '<li>Repository access: <b>Only select repositories</b> → <code>DS-Tools</code>.</li>' +
-      '<li>Permissions → Repository → <b>Contents: Read and write</b>. Verder niets.</li>' +
-      '<li>Plak hem hieronder.</li></ol>' +
-      '<input type="password" id="tokenveld" placeholder="github_pat_…" autocomplete="off">' +
-      '<button class="knop" id="bewaar">Bewaar token</button>';
-    $('bewaar').onclick = function () {
-      var v = $('tokenveld').value.trim();
-      if (!v) return;
-      try { localStorage.setItem(TOKEN_KEY, v); } catch (e) {}
-      tekenToken(); teken();
-    };
+  // ── Inloggen met het GitHub-token ──────────────────────────────────────
+  // GitHub Pages heeft geen server, dus "inloggen" = het token laten controleren door
+  // GitHub zelf: geldig (anders 401) én van iemand met schrijfrecht op DS-Tools. Zonder
+  // dat toont de pagina niets. Let wel: de bron van deze pagina, launcher.js en
+  // status.json blijven openbaar (publieke repo); het echte slot is dat opslaan het
+  // token nodig heeft. Eén keer per browser; het token staat in localStorage.
+  var REPO_API = 'https://api.github.com/repos/' + REPO;
+  function controleerToken(t) {
+    var h = { 'Accept': 'application/vnd.github+json', 'Authorization': 'Bearer ' + t };
+    function json(r) { return r.ok ? r.json() : {}; }
+    return fetch(REPO_API, { headers: h, cache: 'no-store' })
+      .then(function (r) {
+        if (r.status === 401) throw { soort: 'ongeldig' };
+        if (!r.ok) throw { soort: 'fout', tekst: 'GitHub gaf HTTP ' + r.status };
+        return r.json();
+      })
+      .then(function (repo) {
+        return fetch('https://api.github.com/user', { headers: h, cache: 'no-store' }).then(json).catch(function () { return {}; })
+          .then(function (u) {
+            var wie = (u && u.login) || '';
+            var p = repo && repo.permissions;
+            // Bij een geauthenticeerd verzoek geeft GitHub de rechten van de gebruiker mee.
+            if (p) { if (p.admin || p.maintain || p.push) return wie; throw { soort: 'geenrecht', wie: wie }; }
+            // Zo niet: navragen voor deze gebruiker.
+            if (!wie) throw { soort: 'geenrecht' };
+            return fetch(REPO_API + '/collaborators/' + encodeURIComponent(wie) + '/permission', { headers: h, cache: 'no-store' })
+              .then(json).catch(function () { return {}; })
+              .then(function (c) {
+                if (['admin', 'maintain', 'write'].indexOf(c && c.permission) >= 0) return wie;
+                throw { soort: 'geenrecht', wie: wie };
+              });
+          });
+      })
+      .catch(function (e) { if (e && e.soort) throw e; throw { soort: 'netwerk', tekst: (e && e.message) || String(e) }; });
   }
 
-  tekenToken();
-  Promise.all([laadTools(), laadStatus()])
-    .then(teken)
-    .catch(function (e) { $('tools').innerHTML = ''; meld('fout', 'Laden mislukt: ' + esc(e.message)); });
+  var UITLEG_TOKEN =
+    '<details><summary>Hoe maak ik een token?</summary><ol style="margin-top:8px">' +
+    '<li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> → Generate new token.</li>' +
+    '<li>Repository access: <b>Only select repositories</b> → <code>DS-Tools</code>.</li>' +
+    '<li>Permissions → Repository → <b>Contents: Read and write</b>. Verder niets.</li>' +
+    '<li>Plak hem hierboven en klik op Inloggen.</li></ol></details>';
+
+  function toonLogin(staat) {
+    var m = '';
+    if (staat === 'bezig') m = '<div class="melding let">Token controleren bij GitHub…</div>';
+    else if (staat && staat.soort === 'ongeldig') m = '<div class="melding fout">Dit token is ongeldig, verlopen of ingetrokken. Maak een nieuw aan.</div>';
+    else if (staat && staat.soort === 'geenrecht') m = '<div class="melding fout">Dit token' + (staat.wie ? ' hoort bij <b>' + esc(staat.wie) + '</b> en' : '') + ' heeft geen schrijfrecht op <code>' + esc(REPO) + '</code>.</div>';
+    else if (staat && staat.soort) m = '<div class="melding fout">Controleren lukte niet: ' + esc(staat.tekst || '') + '. ' +
+      (token() ? '<button class="link" id="opnieuw">Opnieuw proberen</button>' : 'Probeer het zo opnieuw.') + '</div>';
+    $('login').innerHTML = '<h2>Inloggen</h2>' +
+      '<p>Deze pagina is alleen voor wie DS Tools beheert. Log in met je GitHub-token; hij blijft alleen in deze browser.</p>' +
+      '<input type="password" id="tokenveld" placeholder="github_pat_…" autocomplete="off"' + (staat === 'bezig' ? ' disabled' : '') + '>' +
+      '<button class="knop" id="inloggen"' + (staat === 'bezig' ? ' disabled' : '') + '>Inloggen</button>' + m + UITLEG_TOKEN;
+    $('inloggen').onclick = probeer;
+    $('tokenveld').onkeydown = function (e) { if (e.key === 'Enter') probeer(); };
+    if ($('opnieuw')) $('opnieuw').onclick = start;
+    if (staat !== 'bezig') $('tokenveld').focus();
+  }
+
+  function probeer() {
+    var v = $('tokenveld').value.trim();
+    if (!v) return;
+    toonLogin('bezig');
+    controleerToken(v).then(function (wie) {
+      try { localStorage.setItem(TOKEN_KEY, v); } catch (e) {}
+      binnen(wie);
+    }, toonLogin);
+  }
+
+  function binnen(wie) {
+    $('login').hidden = true;
+    $('app').hidden = false;
+    $('token').innerHTML = '<p>Ingelogd' + (wie ? ' als <b>' + esc(wie) + '</b>' : '') + '. Alleen met dit token kan deze pagina ' +
+      '<code>launcher/status.json</code> wijzigen; het staat alleen in deze browser. <button class="link" id="uitloggen">Uitloggen</button></p>';
+    $('uitloggen').onclick = function () { try { localStorage.removeItem(TOKEN_KEY); } catch (e) {} location.reload(); };
+    Promise.all([laadTools(), laadStatus()])
+      .then(teken)
+      .catch(function (e) { $('tools').innerHTML = ''; meld('fout', 'Laden mislukt: ' + esc(e.message)); });
+  }
+
+  // Bewaard token: stil opnieuw controleren. Ongeldig = vergeten; netwerkfout = laten staan.
+  function start() {
+    var t = token();
+    if (!t) return toonLogin();
+    toonLogin('bezig');
+    controleerToken(t).then(binnen, function (e) {
+      if (e.soort === 'ongeldig' || e.soort === 'geenrecht') { try { localStorage.removeItem(TOKEN_KEY); } catch (x) {} }
+      toonLogin(e);
+    });
+  }
+  start();
 })();
 </script>
 </body>
