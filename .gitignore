@@ -50,6 +50,11 @@
 !/ev/ev-ritten.js
 !/ev/ev-ritten.user.js
 
+!/ritsortering/
+/ritsortering/*
+!/ritsortering/ritsortering.js
+!/ritsortering/ritsortering.user.js
+
 !/logboek/
 /logboek/*
 !/logboek/logboek-portal.user.js

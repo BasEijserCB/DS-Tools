@@ -26,7 +26,7 @@
   'auto-dev'. Dan geen balk, maar de modules uit AUTO die bij deze pagina horen.
 */
 (function () {
-  var LAUNCHER_VERSION = '1.5.1';
+  var LAUNCHER_VERSION = '1.6.0';
   var ID = 'ds-tools-launcher';
   var BASE = 'https://raw.githubusercontent.com/BasEijserCB/DS-Tools/main/';
   var BEHEER_URL = 'https://baseijsercb.github.io/DS-Tools/launcher/beheer.html';
@@ -84,6 +84,10 @@
       hier: opRitmonitor, alleenHier: true,
       kleur: '#558b2f',
       bestanden: [{ naam: 'EV-ritten', cache: 'ds_ev_ritten_cache', src: 'ev/ev-ritten.js', versie: /EV_VERSION\s*=\s*['"]([^'"]+)['"]/ }] },
+    { id: 'ritsortering', waar: 'Ritmonitor', status: 'test', naam: 'Ritsortering', icoon: '🔢', uitleg: 'Ritten op netwerk en nummer (1M, 1X, 2M, BI), met een lichte kleur per netwerk',
+      hier: opRitmonitor, alleenHier: true,
+      kleur: '#5b6b8c',
+      bestanden: [{ naam: 'Ritsortering', cache: 'ds_ritsortering_cache', src: 'ritsortering/ritsortering.js', versie: /RITSORTERING_VERSION\s*=\s*['"]([^'"]+)['"]/ }] },
     { id: 'same-day-text', waar: 'Order in Basic', status: 'productie', naam: 'Same day text', icoon: '🎉', uitleg: 'Opmerking: wordt vandaag nog opgelost',
       hier: opBasicOrders,
       start: function () { opmerkingTekst('Wordt al opgelost, via nieuw bezoek van bezorger(s) op dezelfde dag'); } },
@@ -140,6 +144,9 @@
     { id: 'auto-ev-ritten', status: 'test', tool: 'ev-ritten', waar: 'Ritmonitor', naam: 'EV-ritten', icoon: '⚡',
       uitleg: '⚡ EV bij ritten met een elektrische bus, zonder klik',
       hier: opCoolblueDirextion && opRitmonitor, src: 'ev/ev-ritten.user.js', cache: 'ds_auto_ev_ritten' },
+    { id: 'auto-ritsortering', status: 'test', tool: 'ritsortering', waar: 'Ritmonitor', naam: 'Ritsortering', icoon: '🔢',
+      uitleg: 'Ritten vanzelf op netwerk en nummer, met een lichte kleur per netwerk',
+      hier: opCoolblueDirextion && opRitmonitor, src: 'ritsortering/ritsortering.user.js', cache: 'ds_auto_ritsortering' },
     { id: 'auto-logboek-basic', status: 'test', tool: 'ds-logboek', waar: 'Order in Basic', naam: 'DS Logboek in Basic', icoon: '📋',
       uitleg: 'Knoppen DS Logboek en Service Check onder het vergrootglas (Service Check vraagt ook het script van David)',
       hier: opBasic, src: 'logboek/logboek-basic.user.js', cache: 'ds_auto_logboek_basic' },
