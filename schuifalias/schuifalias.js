@@ -6,9 +6,15 @@
 
    WAT
    Elke ochtend krijgt de alias van een schuifrit de code van het sturende
-   depot erachter:  2M-DETR-04  →  2M-DETR-04 (DEDU)
-   Code = land + eerste twee letters van de depotnaam; Hamburg = DEHM,
-   Hamm = DEHA. De codes komen uit het endpoint, niet uit dit bestand.
+   depot erachter:  2M-DETR-04  →  2M-DETR-04 (DUS)
+   Code = de eerste drie letters van de naam van het sturende depot
+   (Nivelles NIV, Tilburg TIL, Venlo (NL) VEN); Hamm = HAM, Hamburg = HMB.
+   Berekend in dit bestand (stuurCode()) uit de depotnaam van het endpoint;
+   het vanCode-veld van het endpoint (land + twee letters, DEDU) wordt
+   sinds v1.3.0 niet meer gebruikt. Tot v1.2.0 was dat de code achter de
+   alias; collega's wilden drie letters (20-11-2026).
+   De ontvangende depotcode (naarCode, DETR) blijft wél uit het endpoint:
+   die staat in de alias zelf en daarop worden de ritten herkend.
 
    WELKE RIT IS DE SCHUIFRIT
    Dezelfde regel als Rapport.gs: ontvangend depot (aliascode) + netwerk
@@ -22,7 +28,8 @@
      gebruiker met een vinkje welke het is ("Bekijk" markeert ze)
    - twee sturende depots hetzelfde slot delen
    - de alias de code al heeft
-   Een oude handmatige toevoeging als "(DUS)" wordt vervangen.
+   Elke toevoeging tussen haakjes aan het eind wordt vervangen, dus ook een
+   oude code als "(DEDU)" van vóór v1.3.0.
 
    HOE
    1. Controleren: per ontvangend depot het filter zetten, op ↻ drukken,
@@ -60,7 +67,7 @@
 (function () {
   'use strict';
 
-  var SCHUIFALIAS_VERSION = '1.2.0';
+  var SCHUIFALIAS_VERSION = '1.3.0';
 
   // /exec-URL van de Schuifritten web-app. Leeg = de tool meldt dat en doet niets.
   // Toegang "Iedereen binnen Coolblue": de <script>-tag stuurt de Google-login mee.
@@ -77,6 +84,15 @@
   // ── Hulpjes ───────────────────────────────────────────────────────────────
   function naamNorm(s) {
     return String(s || '').replace(/\(.*?\)/g, '').normalize('NFD').toLowerCase().replace(/[^a-z]/g, '');
+  }
+  // Code van het sturende depot achter de alias: eerste drie letters van de naam,
+  // zonder accenten en zonder "(NL)" (Düsseldorf → DUS, Venlo (NL) → VEN).
+  // Hamm en Hamburg zouden allebei HAM worden: Hamm = HAM, Hamburg = HMB.
+  var STUURCODE_UITZONDERING = { hamm: 'HAM', hamburg: 'HMB' };
+  function stuurCode(naam, reserve) {
+    var n = naamNorm(naam);
+    if (STUURCODE_UITZONDERING[n]) return STUURCODE_UITZONDERING[n];
+    return n.length >= 3 ? n.slice(0, 3).toUpperCase() : String(reserve || '').toUpperCase();
   }
   function haakjes(s) { var m = String(s || '').match(/\(([^)]*)\)/); return m ? m[1].trim().toUpperCase() : ''; }
   function wacht(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -299,7 +315,8 @@
       var k = r.netwerk + '|' + r.start;
       var s = d.slots[k] || (d.slots[k] = { netwerk: r.netwerk, start: r.start, aantal: 0, van: [] });
       s.aantal += r.aantal;
-      if (s.van.indexOf(r.vanCode) < 0) s.van.push(r.vanCode);
+      var van = stuurCode(r.van, r.vanCode);
+      if (s.van.indexOf(van) < 0) s.van.push(van);
     });
     return Object.keys(depots).sort().map(function (k) { return depots[k]; });
   }
@@ -690,7 +707,7 @@
   function toonStart() {
     var p = paneel();
     p.innerHTML = kop() + '<div class="sa-tekst">Zet de code van het sturende depot achter de alias van elke schuifrit van vandaag ' +
-      '(<b>2M-DETR-04</b> → <b>2M-DETR-04 (DEDU)</b>).</div>' +
+      '(<b>2M-DETR-04</b> → <b>2M-DETR-04 (DUS)</b>).</div>' +
       '<div class="sa-tekst" style="padding-top:0;color:#666666;">Controleren loopt de ontvangende depots langs in de Rit overzicht en laat zien wat er verandert. ' +
       'Er wordt pas iets opgeslagen als je daarna op opslaan klikt.</div>' +
       '<div class="sa-voet"><button class="sa-knop sa-primair" data-a="controleer">Controleren</button></div>';
