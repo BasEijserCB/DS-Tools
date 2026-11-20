@@ -30,17 +30,17 @@
 (function () {
   'use strict';
 
-  var RITSORTERING_VERSION = '1.0.0';
+  var RITSORTERING_VERSION = '1.0.1';
 
   var STYLE_ID = 'ritsortering-style';
   var NAAM = 'ritsortering-naam';
   var NETWERKEN = ['1M', '1X', '2M', 'BI'];
   // Licht vlak + iets donkerdere rand per netwerk; geen rood/oranje/groen.
   var TINT = {
-    '1M': ['#e6effa', '#a9c4e6'],
-    '1X': ['#eee8f8', '#c3b2e3'],
-    '2M': ['#e2f3f3', '#9fd0cc'],
-    'BI': ['#f7e8f0', '#dcaecb']
+    '1M': ['#cfe0f7', '#7fa6db'],
+    '1X': ['#e0d4f5', '#a68bd6'],
+    '2M': ['#c9ebe8', '#6fbcb4'],
+    'BI': ['#f3d3e4', '#cf86b0']
   };
 
   // ── Aan/uit ───────────────────────────────────────────────────────────────
